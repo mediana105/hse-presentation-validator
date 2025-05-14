@@ -10,7 +10,8 @@ data class Slide(
     var title: String? = null,
     var texts: List<Text>? = null,
     var images: List<Image>? = null,
-    var isTitleSlide: Boolean = false
+    var isTitleSlide: Boolean = false,
+    val listGroups: List<List<Text>> = emptyList()
 ) {
     @Contract("_ -> !null")
     fun extractSlideTitle(slide: XSLFSlide): String {

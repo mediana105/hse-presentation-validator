@@ -6,6 +6,7 @@ import org.apache.poi.sl.usermodel.PaintStyle.SolidPaint
 import org.apache.poi.sl.usermodel.Placeholder
 import org.apache.poi.xslf.usermodel.*
 import org.hse.validator.model.*
+import org.hse.validator.util.FontUtils
 import java.io.FileInputStream
 import java.util.logging.Level
 import java.util.logging.Logger
@@ -40,33 +41,47 @@ class PptxParser {
             .map { shape: XSLFShape -> convertImageElement(shape as XSLFPictureShape) }
             .collect(Collectors.toList())
 
+        val listGroups = mutableListOf<MutableList<Text>>()
+        var currentList: MutableList<Text>? = null
+        for (text in textElements) {
+            if (text.isBullet) {
+                if (currentList == null) {
+                    currentList = mutableListOf()
+                    listGroups.add(currentList)
+                }
+                currentList.add(text)
+            } else {
+                currentList = null
+            }
+        }
+
         return Slide(
             number = poiSlide.slideNumber,
             title = Slide().extractSlideTitle(poiSlide),
             texts = textElements,
             images = images,
-            isTitleSlide = poiSlide.slideNumber == 1
+            isTitleSlide = poiSlide.slideNumber == 1,
+            listGroups = listGroups
         )
     }
 
 
     private fun convertTextElement(poiText: XSLFTextShape): Text {
-        // Устанавливаем значения по умолчанию
         var fontName: String? = null
         var fontSize: Double? = null
         var isBold = false
         var isItalic = false
         var textColor: ColorStyle? = null
+        val isBullet = poiText.textParagraphs.any { it.isBullet }
 
-        if (poiText.textParagraphs.isNotEmpty()) {
-            val firstParagraph = poiText.textParagraphs[0]
-            if (firstParagraph.textRuns.isNotEmpty()) {
-                val firstRun = firstParagraph.textRuns[0]
-                fontName = firstRun.fontFamily
-                fontSize = firstRun.fontSize
-                isBold = firstRun.isBold
-                isItalic = firstRun.isItalic
-                textColor = extractSolidPaintColor(firstRun.fontColor)
+
+        for (paragraph in poiText.textParagraphs) {
+            for (run in paragraph.textRuns) {
+                if (run.fontFamily != null && fontName == null) fontName = run.fontFamily
+                if (run.fontSize != null && fontSize == null) fontSize = run.fontSize
+                if (!isBold && run.isBold) isBold = true
+                if (!isItalic && run.isItalic) isItalic = true
+                if (textColor == null) textColor = extractSolidPaintColor(run.fontColor)
             }
         }
 
@@ -83,12 +98,15 @@ class PptxParser {
 
         return Text(
             content = poiText.text,
-            fontName = fontName,
+            fontFamily = fontName,
             fontSize = fontSize,
             isBold = isBold,
             isItalic = isItalic,
             textColor = textColor,
-            contentType = contentType
+            contentType = contentType,
+            isBullet = isBullet,
+            isSerif = FontUtils.isSerif(fontName),
+            isSansSerif = FontUtils.isSansSerif(fontName)
         )
     }
 
