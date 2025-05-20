@@ -31,6 +31,7 @@ dependencies {
 
     implementation("com.ibm.icu:icu4j:72.1")
     implementation(kotlin("stdlib-jdk8"))
+    implementation("com.fasterxml.jackson.module:jackson-module-kotlin:2.15.3")
 }
 
 application {

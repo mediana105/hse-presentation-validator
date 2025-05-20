@@ -1,7 +1,7 @@
 package org.hse.validator.rules
 
 import org.hse.validator.model.Presentation
-import org.hse.validator.model.TYPE
+import org.hse.validator.model.TextType
 import org.hse.validator.model.Text
 import org.hse.validator.util.FontUtils
 
@@ -20,7 +20,7 @@ class SansSerifFontRule : TextRule() {
     override val message: String = "The main text should be sans serif."
 
     override fun validateText(text: Text): Boolean {
-        if (text.contentType != TYPE.BODY) return true
+        if (text.contentType != TextType.BODY) return true
         return FontUtils.isSansSerif(text.fontFamily)
     }
 }
@@ -30,8 +30,8 @@ class FontSizeRule : TextRule() {
     override fun validateText(text: Text): Boolean {
         val size = text.fontSize ?: return false
         return when (text.contentType) {
-            TYPE.TITLE -> size in 28.0..36.0
-            TYPE.BODY -> size in 14.0..22.0
+            TextType.TITLE -> size in 28.0..36.0
+            TextType.BODY -> size in 14.0..22.0
             else -> true
         }
     }

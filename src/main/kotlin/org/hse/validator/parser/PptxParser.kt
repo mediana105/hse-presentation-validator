@@ -1,16 +1,17 @@
 package org.hse.validator.parser
 
-import org.apache.poi.sl.usermodel.ColorStyle
 import org.apache.poi.sl.usermodel.PaintStyle
 import org.apache.poi.sl.usermodel.PaintStyle.SolidPaint
 import org.apache.poi.sl.usermodel.Placeholder
-import org.apache.poi.xslf.usermodel.*
+import org.apache.poi.xslf.usermodel.XMLSlideShow
+import org.apache.poi.xslf.usermodel.XSLFPictureShape
+import org.apache.poi.xslf.usermodel.XSLFSlide
+import org.apache.poi.xslf.usermodel.XSLFTextShape
 import org.hse.validator.model.*
-import org.hse.validator.util.FontUtils
+import java.awt.Color
 import java.io.FileInputStream
 import java.util.logging.Level
 import java.util.logging.Logger
-import java.util.stream.Collectors
 
 class PptxParser {
     private val logger: Logger = Logger.getLogger(PptxParser::class.java.name)
@@ -22,38 +23,16 @@ class PptxParser {
                 return Presentation(
                     slides = pptx.slides.map { poiSlide ->
                         convertSlide(poiSlide)
-                    }
-                )
+                    })
             }
         }
     }
 
     private fun convertSlide(poiSlide: XSLFSlide): Slide {
-        val textElements = poiSlide.shapes
-            .stream()
-            .filter { shape: XSLFShape? -> shape is XSLFTextShape }
-            .map { shape: XSLFShape -> convertTextElement(shape as XSLFTextShape) }
-            .toList()
+        val images = poiSlide.shapes.filterIsInstance<XSLFPictureShape>().map { convertImageElement(it) }
+        val textElements = poiSlide.shapes.filterIsInstance<XSLFTextShape>().flatMap { convertTextElements(it) }
 
-        val images = poiSlide.shapes
-            .stream()
-            .filter { shape: XSLFShape? -> shape is XSLFPictureShape }
-            .map { shape: XSLFShape -> convertImageElement(shape as XSLFPictureShape) }
-            .collect(Collectors.toList())
-
-        val listGroups = mutableListOf<MutableList<Text>>()
-        var currentList: MutableList<Text>? = null
-        for (text in textElements) {
-            if (text.isBullet) {
-                if (currentList == null) {
-                    currentList = mutableListOf()
-                    listGroups.add(currentList)
-                }
-                currentList.add(text)
-            } else {
-                currentList = null
-            }
-        }
+        val listGroups = detectListGroups(textElements)
 
         return Slide(
             number = poiSlide.slideNumber,
@@ -66,16 +45,16 @@ class PptxParser {
     }
 
 
-    private fun convertTextElement(poiText: XSLFTextShape): Text {
-        var fontName: String? = null
-        var fontSize: Double? = null
-        var isBold = false
-        var isItalic = false
-        var textColor: ColorStyle? = null
-        val isBullet = poiText.textParagraphs.any { it.isBullet }
-
-
+    private fun convertTextElements(poiText: XSLFTextShape): List<Text> {
+        val paragraphs = mutableListOf<Text>()
         for (paragraph in poiText.textParagraphs) {
+            var fontName: String? = null
+            var fontSize: Double? = null
+            var isBold = false
+            var isItalic = false
+            var textColor: Color? = null
+            val isBullet = paragraph.isBullet
+            val bulletCharacter = paragraph.bulletCharacter
             for (run in paragraph.textRuns) {
                 if (run.fontFamily != null && fontName == null) fontName = run.fontFamily
                 if (run.fontSize != null && fontSize == null) fontSize = run.fontSize
@@ -83,31 +62,30 @@ class PptxParser {
                 if (!isItalic && run.isItalic) isItalic = true
                 if (textColor == null) textColor = extractSolidPaintColor(run.fontColor)
             }
+
+            val contentType = when (poiText.textType) {
+                Placeholder.CENTERED_TITLE -> TextType.CENTERED_TITLE
+                Placeholder.TITLE -> TextType.TITLE
+                Placeholder.SUBTITLE -> TextType.SUBTITLE
+                Placeholder.HEADER, Placeholder.FOOTER -> TextType.HEADER
+                Placeholder.BODY -> TextType.BODY
+                else -> TextType.BODY
+            }
+            paragraphs.add(
+                Text(
+                    content = paragraph.text,
+                    fontFamily = fontName,
+                    fontSize = fontSize,
+                    isBold = isBold,
+                    isItalic = isItalic,
+                    textColor = textColor,
+                    contentType = contentType,
+                    isBullet = isBullet,
+                    bulletCharacter = bulletCharacter
+                )
+            )
         }
-
-        val contentType = when (poiText.textType) {
-            Placeholder.CENTERED_TITLE -> TYPE.CENTERED_TITLE
-            Placeholder.TITLE -> TYPE.TITLE
-            Placeholder.SUBTITLE -> TYPE.SUBTITLE
-            Placeholder.HEADER, Placeholder.FOOTER -> TYPE.HEADER
-            Placeholder.BODY -> TYPE.BODY
-            else -> TYPE.BODY
-        }
-
-        logger.fine("Text: ${poiText.text}\n")
-
-        return Text(
-            content = poiText.text,
-            fontFamily = fontName,
-            fontSize = fontSize,
-            isBold = isBold,
-            isItalic = isItalic,
-            textColor = textColor,
-            contentType = contentType,
-            isBullet = isBullet,
-            isSerif = FontUtils.isSerif(fontName),
-            isSansSerif = FontUtils.isSansSerif(fontName)
-        )
+        return paragraphs
     }
 
     private fun convertImageElement(pictureShape: XSLFPictureShape): Image {
@@ -123,15 +101,48 @@ class PptxParser {
         )
     }
 
-    private fun extractSolidPaintColor(paintStyle: PaintStyle): ColorStyle? {
+    private fun extractSolidPaintColor(paintStyle: PaintStyle): Color? {
         try {
             if (paintStyle is SolidPaint) {
-                return paintStyle.solidColor
+                return paintStyle.solidColor.color
             }
             logger.warning("Unsupported paint style: " + paintStyle.javaClass.simpleName)
         } catch (e: Exception) {
             logger.log(Level.WARNING, "Error getting color", e)
         }
         return null
+    }
+
+    private fun detectListGroups(texts: List<Text>): List<List<Text>> {
+        val listGroups = mutableListOf<MutableList<Text>>()
+        var currentList: MutableList<Text>? = null
+
+        for (text in texts) {
+            if (isListItem(text)) {
+                if (currentList == null) {
+                    currentList = mutableListOf()
+                    listGroups.add(currentList)
+                }
+                currentList.add(text)
+            } else {
+                currentList = null
+            }
+        }
+        return listGroups
+    }
+
+    private fun isListItem(text: Text): Boolean {
+        // if the text is bulleted
+        if (text.isBullet) {
+            logger.info("$text  ${text.bulletCharacter}")
+            return true
+        }
+
+        // if the text custom numbering
+//        val trimmed = text.content?.trim()
+//        val numberedPattern = Regex("""^\(?\d+[.)]""")
+//
+//        return numberedPattern.containsMatchIn(trimmed.toString())
+        return false
     }
 }

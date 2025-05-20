@@ -1,0 +1,20 @@
+{
+  "serif": [
+    "Times New Roman",
+    "Georgia",
+    "Garamond",
+    "Palatino Linotype",
+    "Book Antiqua",
+    "Cambria"
+  ],
+  "sansSerif": [
+    "Arial",
+    "Helvetica",
+    "Verdana",
+    "Tahoma",
+    "Trebuchet MS",
+    "Calibri",
+    "Gill Sans",
+    "Century Gothic"
+  ]
+}

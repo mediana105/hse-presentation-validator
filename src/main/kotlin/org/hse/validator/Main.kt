@@ -30,7 +30,7 @@ fun main() {
                 for (slide in presentation.slides) {
                     writer.println("Slide number: ${slide.number}")
                     for (text in slide.texts!!) {
-                        writer.println("Text font: ${text.fontName}")
+                        writer.println("Text font: ${text.fontFamily}")
                         writer.println("Text type: ${text.contentType}")
                         writer.println("Text color: ${text.textColor}")
                         writer.println(text)
