@@ -33,6 +33,13 @@ class PptxParser {
         val textElements = poiSlide.shapes.filterIsInstance<XSLFTextShape>().flatMap { convertTextElements(it) }
 
         val listGroups = detectListGroups(textElements)
+        for (listGroup in listGroups) {
+            logger.info("List group started: ")
+            for (elem in listGroup) {
+                logger.info("Item: $elem")
+            }
+            logger.info("List group ended\n")
+        }
 
         return Slide(
             number = poiSlide.slideNumber,
@@ -55,6 +62,7 @@ class PptxParser {
             var textColor: Color? = null
             val isBullet = paragraph.isBullet
             val bulletCharacter = paragraph.bulletCharacter
+            val indentLevel = paragraph.indentLevel
             for (run in paragraph.textRuns) {
                 if (run.fontFamily != null && fontName == null) fontName = run.fontFamily
                 if (run.fontSize != null && fontSize == null) fontSize = run.fontSize
@@ -81,7 +89,8 @@ class PptxParser {
                     textColor = textColor,
                     contentType = contentType,
                     isBullet = isBullet,
-                    bulletCharacter = bulletCharacter
+                    bulletCharacter = bulletCharacter,
+                    indentLevel = indentLevel
                 )
             )
         }
@@ -115,17 +124,28 @@ class PptxParser {
 
     private fun detectListGroups(texts: List<Text>): List<List<Text>> {
         val listGroups = mutableListOf<MutableList<Text>>()
-        var currentList: MutableList<Text>? = null
+        val groupStack = ArrayDeque<MutableList<Text>>()
+        var previousIndent: Int? = null
 
         for (text in texts) {
             if (isListItem(text)) {
-                if (currentList == null) {
-                    currentList = mutableListOf()
-                    listGroups.add(currentList)
+                val indent = text.indentLevel ?: 0
+                while (groupStack.size > 1 && (previousIndent ?: 0) > indent) {
+
+                    logger.info("List item: $text, indent: $indent, previous indent: $previousIndent, group stack: ${groupStack}")
+                    groupStack.removeLast()
                 }
-                currentList.add(text)
+                if (groupStack.isEmpty() || indent > (previousIndent ?: 0)) {
+                    val newGroup = mutableListOf<Text>()
+                    listGroups.add(newGroup)
+                    groupStack.addLast(newGroup)
+                }
+                groupStack.last().add(text)
+                previousIndent = indent
             } else {
-                currentList = null
+                groupStack.clear()
+                previousIndent = null
+                continue
             }
         }
         return listGroups
@@ -134,7 +154,6 @@ class PptxParser {
     private fun isListItem(text: Text): Boolean {
         // if the text is bulleted
         if (text.isBullet) {
-            logger.info("$text  ${text.bulletCharacter}")
             return true
         }
 
