@@ -20,10 +20,12 @@ class PptxParser {
     fun parse(filePath: String): Presentation {
         FileInputStream(filePath).use { fis ->
             XMLSlideShow(fis).use { pptx ->
+                val presentationSize = pptx.pageSize
                 return Presentation(
-                    slides = pptx.slides.map { poiSlide ->
-                        convertSlide(poiSlide)
-                    })
+                    slides = pptx.slides.map { convertSlide(it) },
+                    width = presentationSize.width,
+                    height = presentationSize.height
+                )
             }
         }
     }
