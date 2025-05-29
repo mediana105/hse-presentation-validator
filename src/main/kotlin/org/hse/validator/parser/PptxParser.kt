@@ -69,7 +69,6 @@ class PptxParser {
         return manualNumber?.let { regex.find(it)?.value?.trim() }
     }
 
-
     private fun convertTextElements(poiText: XSLFTextShape): List<Text> {
         val paragraphs = mutableListOf<Text>()
         for (paragraph in poiText.textParagraphs) {

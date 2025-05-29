@@ -1,6 +1,7 @@
 package org.hse.validator.rules
 
 import org.hse.validator.model.Slide
+import org.hse.validator.model.TextType
 
 class TooMuchTextRule(
     private val maxLines: Int = 10,
@@ -19,7 +20,7 @@ class TooMuchTextRule(
     }
 }
 
-class TooFewListItemsRule : SlideRule() {
+class ForbidSingleItemListRule : SlideRule() {
     override val message = "Avoid lists with only one item"
 
     override fun validateSlide(slide: Slide): Boolean {
@@ -61,5 +62,64 @@ class TitleSlideContentRule : SlideRule() {
     private fun containsUniversityName(text: String): Boolean {
         return text.contains("университет", ignoreCase = true) ||
                 text.contains("институт", ignoreCase = true)
+    }
+}
+
+class ListSizeRule(
+    private val minItems: Int = 3,
+    private val maxItems: Int = 7
+) : SlideRule() {
+    override val message = "List should have $minItems–$maxItems items"
+    override fun validateSlide(slide: Slide): Boolean {
+        return slide.listGroups.all { it.size in minItems..maxItems }
+    }
+}
+
+class HeaderFormatRule(
+    private val maxWords: Int = 10
+) : SlideRule() {
+    override val message = "Header should not end with a dot and should not exceed $maxWords words"
+    override fun validateSlide(slide: Slide): Boolean {
+        val headers = slide.texts?.filter { it.contentType == TextType.TITLE } ?: return true
+        return headers.all { text ->
+            val content = text.content?.trim() ?: return@all true
+            !content.endsWith(".") && content.split("\\s+".toRegex()).size <= maxWords
+        }
+    }
+}
+
+class SlideNumberFormatRule : SlideRule() {
+    override val message = "Slide numbering should be in format X / N (except the title slide)"
+    override fun validateSlide(slide: Slide): Boolean {
+        return if (slide.isTitleSlide) {
+            slide.displayedNumber == null
+        } else {
+            slide.displayedNumber != null
+        }
+    }
+}
+
+class ForbidListEndPunctuationRule : SlideRule() {
+    override val message = "List items should not contain punctuation marks at the end"
+    override fun validateSlide(slide: Slide): Boolean {
+        return slide.listGroups.all { group ->
+            group.all { item ->
+                val content = item.content?.trim()
+                if (content.isNullOrEmpty()) return@all true
+                val endMark = content.last()
+                endMark != '.' && endMark != ',' && endMark != ';'
+            }
+        }
+    }
+}
+
+class UniformListCapitalizationRule : SlideRule() {
+    override val message = "All list items within the same group must start with the same case (all uppercase or all lowercase)"
+    override fun validateSlide(slide: Slide): Boolean {
+        return slide.listGroups.all { group ->
+            val startsWithUpper = group
+                .mapNotNull { it.content?.trim()?.firstOrNull()?.isUpperCase() }
+            startsWithUpper.all{it} || startsWithUpper.all{!it}
+        }
     }
 }
