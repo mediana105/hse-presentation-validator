@@ -7,6 +7,7 @@ import org.jetbrains.annotations.Contract
 
 data class Slide(
     var number: Int = 0,
+    var displayedNumber: String? = null,
     var title: String? = null,
     var texts: List<Text>? = null,
     var images: List<Image>? = null,
