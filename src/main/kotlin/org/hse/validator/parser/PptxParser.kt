@@ -43,7 +43,7 @@ class PptxParser {
             }
             logger.info("List group ended\n")
         }
-        logger.info("Slide number text: ${slideNumberText(poiSlide)}")
+        logger.info("Slide background color: ${poiSlide.background?.fillColor}")
         return Slide(
             number = poiSlide.slideNumber,
             displayedNumber = slideNumberText(poiSlide),
@@ -51,7 +51,8 @@ class PptxParser {
             texts = textElements,
             images = images,
             isTitleSlide = poiSlide.slideNumber == 1,
-            listGroups = listGroups
+            listGroups = listGroups,
+            backgroundColor = poiSlide.background?.fillColor
         )
     }
 
@@ -71,6 +72,7 @@ class PptxParser {
 
     private fun convertTextElements(poiText: XSLFTextShape): List<Text> {
         val paragraphs = mutableListOf<Text>()
+        val anchor = poiText.anchor
         for (paragraph in poiText.textParagraphs) {
             var fontName: String? = null
             var fontSize: Double? = null
@@ -107,7 +109,9 @@ class PptxParser {
                     contentType = contentType,
                     isBullet = isBullet,
                     bulletCharacter = bulletCharacter,
-                    indentLevel = indentLevel
+                    indentLevel = indentLevel,
+                    width = anchor.width,
+                    height = anchor.height
                 )
             )
         }
@@ -122,8 +126,8 @@ class PptxParser {
             data = pictureData.data.toList(),
             fileName = pictureData.fileName,
             type = pictureData.type,
-            width = anchor.width.toInt(),
-            height = anchor.height.toInt()
+            width = anchor.width,
+            height = anchor.height
         )
     }
 
@@ -210,4 +214,5 @@ class PptxParser {
         val (number, _) = candidates.maxByOrNull { it.second }!!
         return number
     }
+
 }

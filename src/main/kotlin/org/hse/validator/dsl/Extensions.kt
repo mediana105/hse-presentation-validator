@@ -72,3 +72,15 @@ fun SlideRules.requireUniformListCapitalization() {
     rule(UniformListCapitalizationRule())
 }
 
+fun SlideRules.requireContrast(
+    minContrastForText: Double = 4.5,
+    minContrastForLargeText: Double = 3.0
+) {
+    rule(ContrastRatioRule(minContrastForText, minContrastForLargeText))
+}
+
+fun SlideRules.requireTextToImageAreaRatio(maxTextPercent: Int = 70) {
+    rule(TextToImageAreaRatioRule(maxTextPercent))
+}
+
+

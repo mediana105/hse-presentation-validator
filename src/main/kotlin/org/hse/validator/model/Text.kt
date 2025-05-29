@@ -19,7 +19,9 @@ data class Text(
     var isBullet: Boolean = false,
     var contentType: TextType? = null,
     val bulletCharacter: String? = null,
-    val indentLevel: Int?
+    val indentLevel: Int?,
+    val width: Double = 0.0,
+    val height: Double = 0.0,
 ) {
     val fontType: FontType
         get() = when {

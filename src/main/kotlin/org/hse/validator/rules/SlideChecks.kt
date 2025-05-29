@@ -2,6 +2,7 @@ package org.hse.validator.rules
 
 import org.hse.validator.model.Slide
 import org.hse.validator.model.TextType
+import org.hse.validator.util.getContrastRatio
 
 class TooMuchTextRule(
     private val maxLines: Int = 10,
@@ -114,12 +115,61 @@ class ForbidListEndPunctuationRule : SlideRule() {
 }
 
 class UniformListCapitalizationRule : SlideRule() {
-    override val message = "All list items within the same group must start with the same case (all uppercase or all lowercase)"
+    override val message =
+        "All list items within the same group must start with the same case (all uppercase or all lowercase)"
+
     override fun validateSlide(slide: Slide): Boolean {
         return slide.listGroups.all { group ->
             val startsWithUpper = group
                 .mapNotNull { it.content?.trim()?.firstOrNull()?.isUpperCase() }
-            startsWithUpper.all{it} || startsWithUpper.all{!it}
+            startsWithUpper.all { it } || startsWithUpper.all { !it }
         }
+    }
+}
+
+class ContrastRatioRule(
+    private val minContrastForText: Double = 4.5,
+    private val minContrastForLargeText: Double = 3.0
+) : SlideRule() {
+    override val message =
+        "Text contrast must be at least $minContrastForText for normal text and $minContrastForLargeText for large text"
+
+    override fun validateSlide(slide: Slide): Boolean {
+        val bgColor = slide.backgroundColor ?: return true
+        val texts = slide.texts ?: return true
+
+        return texts.all { text ->
+            val textColor = text.textColor ?: return@all true
+            val fontSize = text.fontSize ?: 0.0
+            val contrast = getContrastRatio(textColor, bgColor)
+            if (fontSize >= 18.0) {
+                contrast >= minContrastForLargeText
+            } else {
+                contrast >= minContrastForText
+            }
+        }
+    }
+
+}
+
+class TextToImageAreaRatioRule(
+    private val maxTextPercent: Int = 70 // например, не более 70% площади текста
+) : SlideRule() {
+    override val message = "Text must not occupy more than $maxTextPercent% of the content area"
+
+    override fun validateSlide(slide: Slide): Boolean {
+        val textArea = slide.texts?.sumOf {
+            it.width * it.height
+        } ?: 0.0
+
+        val imageArea = slide.images?.sumOf {
+            it.width * it.height
+        } ?: 0.0
+
+        val totalArea = textArea + imageArea
+        if (totalArea == 0.0) return true
+
+        val textPercent = (textArea * 100.0) / totalArea
+        return textPercent <= maxTextPercent
     }
 }

@@ -4,6 +4,7 @@ import org.apache.poi.xslf.usermodel.XSLFShape
 import org.apache.poi.xslf.usermodel.XSLFSlide
 import org.apache.poi.xslf.usermodel.XSLFTextShape
 import org.jetbrains.annotations.Contract
+import java.awt.Color
 
 data class Slide(
     var number: Int = 0,
@@ -12,7 +13,8 @@ data class Slide(
     var texts: List<Text>? = null,
     var images: List<Image>? = null,
     var isTitleSlide: Boolean = false,
-    val listGroups: List<List<Text>> = emptyList()
+    val listGroups: List<List<Text>> = emptyList(),
+    val backgroundColor: Color? = null,
 ) {
     @Contract("_ -> !null")
     fun extractSlideTitle(slide: XSLFSlide): String {
