@@ -1,49 +1,61 @@
 package org.hse.validator
 
+
+import org.hse.validator.dsl.*
 import org.hse.validator.parser.PptxParser
 import java.io.File
-import java.io.PrintWriter
-import java.nio.charset.StandardCharsets
-import java.util.logging.FileHandler
-import java.util.logging.Level
-import java.util.logging.Logger
-import java.util.logging.SimpleFormatter
-
 
 fun main() {
-    val logger = Logger.getLogger(PptxParser::class.java.name)
-    logger.level = Level.ALL
+    val parser = PptxParser()
+    val workingDir = System.getProperty("user.dir")
+    val separator = File.separator
+    val presentation = parser.parse("$workingDir${separator}presentations${separator}Example.pptx")
 
-    val fileHandler = FileHandler("parser.log")
-    fileHandler.level = Level.ALL
-    fileHandler.formatter = SimpleFormatter()
-    logger.addHandler(fileHandler)
-
-    try {
-        val parser = PptxParser()
-        val workingDir = System.getProperty("user.dir")
-        val separator = File.separator
-        val presentation = parser.parse("$workingDir${separator}presentations${separator}Example.pptx")
-
-        try {
-            PrintWriter("output.txt", StandardCharsets.UTF_8).use { writer ->
-                for (slide in presentation.slides) {
-                    writer.println("Slide number: ${slide.number}")
-                    for (text in slide.texts!!) {
-                        writer.println("Text font: ${text.fontFamily}")
-                        writer.println("Text type: ${text.contentType}")
-                        writer.println("Text color: ${text.textColor}")
-                        writer.println(text)
-                    }
-                    writer.println()
+    val rules = presentationRules {
+        structure {
+            limitSlidesCount(10, 15)
+            requireSlideFormat(setOf("16:9", "4:3"))
+            requireMandatorySlides(listOf("Введение", "Заключение", "Список литературы"))
+        }
+        slide {
+            style {
+                fonts {
+                    requireSansSerifMainText()
+                    fontSizeRule(bodyMin = 14.0, bodyMax = 22.0, titleMin = 28.0, titleMax = 36.0)
+                }
+                colors {
+                    requireContrast(4.5, 3.0)
                 }
             }
-        } catch (e: Exception) {
-            System.err.println("Error inside: ${e.message}")
-            logger.severe("Error inside: ${e.message}")
+            header {
+                requireHeaderFormat(10)
+            }
+            lists {
+                requireListsHaveBetween(3, 7)
+                requireUniformListCapitalization()
+                forbidListEndPunctuation()
+                forbidSingleItemLists()
+            }
+            numbering {
+                requireSlideNumbering()
+            }
+            graphics {
+                requireTextToImageAreaRatio(70)
+            }
+            content {
+                limitTextPerSlide(10, 40)
+            }
         }
-    } catch (e: Exception) {
-        System.err.println("Error in parsing: ${e.message}")
-        logger.severe("Error in parsing: ${e.message}")
     }
+
+
+    println("Configured rules:")
+    rules.forEach { println(it.message) }
+
+
+    File("rules_debug.txt").printWriter().use { out ->
+        rules.forEach { out.println(it.message) }
+    }
+
+    println("Parsed presentation: ${presentation.slides.size} slides")
 }
