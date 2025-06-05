@@ -36,14 +36,6 @@ class PptxParser {
         val textElements = poiSlide.shapes.filterIsInstance<XSLFTextShape>().flatMap { convertTextElements(it) }
 
         val listGroups = detectListGroups(textElements)
-        for (listGroup in listGroups) {
-            logger.info("List group started: ")
-            for (elem in listGroup) {
-                logger.info("Item: $elem")
-            }
-            logger.info("List group ended\n")
-        }
-        logger.info("Slide background color: ${poiSlide.background?.fillColor}")
         return Slide(
             number = poiSlide.slideNumber,
             displayedNumber = slideNumberText(poiSlide),
@@ -74,6 +66,9 @@ class PptxParser {
         val paragraphs = mutableListOf<Text>()
         val anchor = poiText.anchor
         for (paragraph in poiText.textParagraphs) {
+            if (paragraph.text.isNullOrBlank()) {
+                continue
+            }
             var fontName: String? = null
             var fontSize: Double? = null
             var isBold = false
@@ -152,8 +147,6 @@ class PptxParser {
             if (isListItem(text)) {
                 val indent = text.indentLevel ?: 0
                 while (groupStack.size > 1 && (previousIndent ?: 0) > indent) {
-
-                    logger.info("List item: $text, indent: $indent, previous indent: $previousIndent, group stack: ${groupStack}")
                     groupStack.removeLast()
                 }
                 if (groupStack.isEmpty() || indent > (previousIndent ?: 0)) {

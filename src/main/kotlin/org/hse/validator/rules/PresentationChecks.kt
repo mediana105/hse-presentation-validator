@@ -6,7 +6,7 @@ class SlideCountRule(
     private val minSlides: Int = 10,
     private val maxSlides: Int = 18
 ) : PresentationRule() {
-    override val message = "Slide count should be between $minSlides and $maxSlides"
+    override fun message(msg: String?): String = "Slide count should be between $minSlides and $maxSlides"
 
     override fun validate(presentation: Presentation): Boolean {
         return presentation.slides.size in minSlides..maxSlides
@@ -14,7 +14,7 @@ class SlideCountRule(
 }
 
 class MaxFontVarietyRule(private val maxFonts: Int = 3) : PresentationRule() {
-    override val message = "The number of different fonts should not exceed $maxFonts"
+    override fun message(msg: String?) = "The number of different fonts should not exceed $maxFonts"
 
     override fun validate(presentation: Presentation): Boolean {
         val fonts = presentation.slides
@@ -30,8 +30,7 @@ class TextStyleCountRule(
     private val maxItalic: Int,
     private val maxUnderline: Int
 ) : PresentationRule() {
-    override val message: String
-        get() = "The amount of selected text has been exceeded: bold ≤ $maxBold, italic ≤ $maxItalic, underline ≤ $maxUnderline"
+    override fun message(msg: String?): String = "The amount of selected text has been exceeded: bold ≤ $maxBold, italic ≤ $maxItalic, underline ≤ $maxUnderline"
 
     override fun validate(presentation: Presentation): Boolean {
         val allTexts = presentation.slides.flatMap { it.texts ?: emptyList() }
@@ -43,8 +42,7 @@ class TextStyleCountRule(
 }
 
 class MaxColorVarietyRule(private val maxColor: Int) : PresentationRule() {
-    override val message: String
-        get() = "The number of different colors should not exceed $maxColor"
+    override fun message(msg: String?): String = "The number of different colors should not exceed $maxColor"
 
     override fun validate(presentation: Presentation): Boolean {
         val allTexts = presentation.slides.flatMap { it.texts ?: emptyList() }
@@ -58,7 +56,7 @@ class MaxColorVarietyRule(private val maxColor: Int) : PresentationRule() {
 
 // check for compliance with the specified format (16:9 or 4:3)
 class SlideFormatRule(private val allowedFormats: Set<String>) : PresentationRule() {
-    override val message = "Slide format must be one of: ${allowedFormats.joinToString(", ")}"
+    override fun message(msg: String?): String = "Slide format must be one of: ${allowedFormats.joinToString(", ")}"
     override fun validate(presentation: Presentation): Boolean {
         val format = detectFormat(presentation)
         return allowedFormats.contains(format)
@@ -80,7 +78,7 @@ class SlideFormatRule(private val allowedFormats: Set<String>) : PresentationRul
 
 // checks for required slides
 class MandatorySlidesRule(private val requiredTitles: List<String>) : PresentationRule() {
-    override val message = "Presentation must contain slides: ${requiredTitles.joinToString(", ")}"
+    override fun message(msg: String?): String = "Presentation must contain slides: ${requiredTitles.joinToString(", ")}"
     override fun validate(presentation: Presentation): Boolean {
         val titles = presentation.slides.mapNotNull { it.title?.trim() }
         return requiredTitles.all { required ->

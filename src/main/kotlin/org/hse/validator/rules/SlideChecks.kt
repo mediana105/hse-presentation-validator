@@ -8,7 +8,7 @@ class TooMuchTextRule(
     private val maxLines: Int = 10,
     private val maxWords: Int = 40
 ) : SlideRule() {
-    override val message = "Too much text on slide (max $maxLines lines or $maxWords words)"
+    override fun message(msg: String?): String = "Too much text on slide (max $maxLines lines or $maxWords words)"
     override fun validateSlide(slide: Slide): Boolean {
         val texts = slide.texts ?: return true
         val lineCount = texts.size
@@ -22,7 +22,7 @@ class TooMuchTextRule(
 }
 
 class ForbidSingleItemListRule : SlideRule() {
-    override val message = "Avoid lists with only one item"
+    override fun message(msg: String?): String = "Avoid lists with only one item"
 
     override fun validateSlide(slide: Slide): Boolean {
         return slide.listGroups.all { it.size != 1 }
@@ -30,7 +30,7 @@ class ForbidSingleItemListRule : SlideRule() {
 }
 
 class TitleSlideContentRule : SlideRule() {
-    override val message: String =
+    override fun message(msg: String?): String =
         "Title slide must contain full student name, supervisor name, project title, and university name"
 
     override fun validateSlide(slide: Slide): Boolean {
@@ -70,7 +70,7 @@ class ListSizeRule(
     private val minItems: Int = 3,
     private val maxItems: Int = 7
 ) : SlideRule() {
-    override val message = "List should have $minItems–$maxItems items"
+    override fun message(msg: String?): String = "List should have $minItems–$maxItems items"
     override fun validateSlide(slide: Slide): Boolean {
         return slide.listGroups.all { it.size in minItems..maxItems }
     }
@@ -79,7 +79,7 @@ class ListSizeRule(
 class HeaderFormatRule(
     private val maxWords: Int = 10
 ) : SlideRule() {
-    override val message = "Header should not end with a dot and should not exceed $maxWords words"
+    override fun message(msg: String?): String = "Header should not end with a dot and should not exceed $maxWords words"
     override fun validateSlide(slide: Slide): Boolean {
         val headers = slide.texts?.filter { it.contentType == TextType.TITLE } ?: return true
         return headers.all { text ->
@@ -90,7 +90,7 @@ class HeaderFormatRule(
 }
 
 class SlideNumberFormatRule : SlideRule() {
-    override val message = "Slide numbering should be in format X / N (except the title slide)"
+    override fun message(msg: String?): String = "Slide numbering should be in format X / N (except the title slide)"
     override fun validateSlide(slide: Slide): Boolean {
         return if (slide.isTitleSlide) {
             slide.displayedNumber == null
@@ -101,7 +101,7 @@ class SlideNumberFormatRule : SlideRule() {
 }
 
 class ForbidListEndPunctuationRule : SlideRule() {
-    override val message = "List items should not contain punctuation marks at the end"
+    override fun message(msg: String?): String = "List items should not contain punctuation marks at the end"
     override fun validateSlide(slide: Slide): Boolean {
         return slide.listGroups.all { group ->
             group.all { item ->
@@ -115,7 +115,7 @@ class ForbidListEndPunctuationRule : SlideRule() {
 }
 
 class UniformListCapitalizationRule : SlideRule() {
-    override val message =
+    override fun message(msg: String?): String =
         "All list items within the same group must start with the same case (all uppercase or all lowercase)"
 
     override fun validateSlide(slide: Slide): Boolean {
@@ -131,7 +131,7 @@ class ContrastRatioRule(
     private val minContrastForText: Double = 4.5,
     private val minContrastForLargeText: Double = 3.0
 ) : SlideRule() {
-    override val message =
+    override fun message(msg: String?): String =
         "Text contrast must be at least $minContrastForText for normal text and $minContrastForLargeText for large text"
 
     override fun validateSlide(slide: Slide): Boolean {
@@ -155,7 +155,7 @@ class ContrastRatioRule(
 class TextToImageAreaRatioRule(
     private val maxTextPercent: Int = 70 // например, не более 70% площади текста
 ) : SlideRule() {
-    override val message = "Text must not occupy more than $maxTextPercent% of the content area"
+    override fun message(msg: String?): String = "Text must not occupy more than $maxTextPercent% of the content area"
 
     override fun validateSlide(slide: Slide): Boolean {
         val textArea = slide.texts?.sumOf {

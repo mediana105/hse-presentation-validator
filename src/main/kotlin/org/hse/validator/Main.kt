@@ -3,6 +3,8 @@ package org.hse.validator
 
 import org.hse.validator.dsl.*
 import org.hse.validator.parser.PptxParser
+import org.hse.validator.validators.Validator
+import org.hse.validator.validators.printValidationReport
 import java.io.File
 
 fun main() {
@@ -48,14 +50,7 @@ fun main() {
         }
     }
 
-
-    println("Configured rules:")
-    rules.forEach { println(it.message) }
-
-
-    File("rules_debug.txt").printWriter().use { out ->
-        rules.forEach { out.println(it.message) }
-    }
-
-    println("Parsed presentation: ${presentation.slides.size} slides")
+    val validator = Validator(rules)
+    val results = validator.validate(presentation)
+    printValidationReport(results, presentation.slides)
 }
