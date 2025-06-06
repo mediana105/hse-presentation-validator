@@ -22,8 +22,9 @@ class PptxParser {
         FileInputStream(filePath).use { fis ->
             XMLSlideShow(fis).use { pptx ->
                 val presentationSize = pptx.pageSize
+                val slideHeight = presentationSize.height
                 return Presentation(
-                    slides = pptx.slides.map { convertSlide(it) },
+                    slides = pptx.slides.map { convertSlide(it, slideHeight) },
                     width = presentationSize.width,
                     height = presentationSize.height
                 )
@@ -31,11 +32,79 @@ class PptxParser {
         }
     }
 
-    private fun convertSlide(poiSlide: XSLFSlide): Slide {
+    private fun convertSlide(poiSlide: XSLFSlide, slideHeight: Int): Slide {
         val images = poiSlide.shapes.filterIsInstance<XSLFPictureShape>().map { convertImageElement(it) }
-        val textElements = poiSlide.shapes.filterIsInstance<XSLFTextShape>().flatMap { convertTextElements(it) }
+        val textElements = mutableListOf<Text>()
+        val listGroups = mutableListOf<MutableList<Text>>() // all list groups on slide
 
-        val listGroups = detectListGroups(textElements)
+        for (shape in poiSlide.shapes.filterIsInstance<XSLFTextShape>()) {
+            val groupStack = ArrayDeque<MutableList<Text>>() // для вложенных списков внутри shape
+
+            for (paragraph in shape.textParagraphs) {
+                if (paragraph.text.isNullOrBlank()) continue
+
+                // collect parameters to determine the content type text (TextType)
+                var fontName: String? = null
+                var fontSize: Double? = null
+                var isBold = false
+                var isItalic = false
+                var textColor: Color? = null
+                val bulletCharacter = paragraph.bulletCharacter
+                val indentLevel = paragraph.indentLevel
+
+                for (run in paragraph.textRuns) {
+                    if (run.fontFamily != null && fontName == null) fontName = run.fontFamily
+                    if (run.fontSize != null && fontSize == null) fontSize = run.fontSize
+                    if (!isBold && run.isBold) isBold = true
+                    if (!isItalic && run.isItalic) isItalic = true
+                    if (textColor == null) textColor = extractSolidPaintColor(run.fontColor)
+                }
+
+                val contentType = detectContentType(
+                    shape.textType, shape.anchor, fontSize, slideHeight, paragraph.isBullet
+                )
+
+                val text = Text(
+                    content = paragraph.text,
+                    fontFamily = fontName,
+                    fontSize = fontSize,
+                    isBold = isBold,
+                    isItalic = isItalic,
+                    textColor = textColor,
+                    contentType = contentType,
+                    bulletCharacter = bulletCharacter,
+                    width = shape.anchor.width,
+                    height = shape.anchor.height
+                )
+                textElements.add(text)
+
+                // grouping lists
+                if (contentType == TextType.LIST_ITEM) {
+                    val indent = indentLevel
+                    // remove all levels above the current one
+                    while (groupStack.size > indent + 1) groupStack.removeLast()
+                    // if there is no group for the current level, create one
+                    if (groupStack.size <= indent) {
+                        val newGroup = mutableListOf<Text>()
+                        listGroups.add(newGroup)
+                        groupStack.addLast(newGroup)
+                    }
+                    groupStack.last().add(text)
+                } else {
+                    // if not a list element, reset the stack
+                    groupStack.clear()
+                }
+            }
+        }
+
+        logger.info("Slide number: ${poiSlide.slideNumber}")
+        for (list in listGroups) {
+            logger.info("List started\n")
+            for (elem in list) {
+                logger.info("List element: $elem")
+            }
+            logger.info("\nList ended\n")
+        }
         return Slide(
             number = poiSlide.slideNumber,
             displayedNumber = slideNumberText(poiSlide),
@@ -62,56 +131,6 @@ class PptxParser {
         return manualNumber?.let { regex.find(it)?.value?.trim() }
     }
 
-    private fun convertTextElements(poiText: XSLFTextShape): List<Text> {
-        val paragraphs = mutableListOf<Text>()
-        val anchor = poiText.anchor
-        for (paragraph in poiText.textParagraphs) {
-            if (paragraph.text.isNullOrBlank()) {
-                continue
-            }
-            var fontName: String? = null
-            var fontSize: Double? = null
-            var isBold = false
-            var isItalic = false
-            var textColor: Color? = null
-            val isBullet = paragraph.isBullet
-            val bulletCharacter = paragraph.bulletCharacter
-            val indentLevel = paragraph.indentLevel
-            for (run in paragraph.textRuns) {
-                if (run.fontFamily != null && fontName == null) fontName = run.fontFamily
-                if (run.fontSize != null && fontSize == null) fontSize = run.fontSize
-                if (!isBold && run.isBold) isBold = true
-                if (!isItalic && run.isItalic) isItalic = true
-                if (textColor == null) textColor = extractSolidPaintColor(run.fontColor)
-            }
-
-            val contentType = when (poiText.textType) {
-                Placeholder.CENTERED_TITLE -> TextType.CENTERED_TITLE
-                Placeholder.TITLE -> TextType.TITLE
-                Placeholder.SUBTITLE -> TextType.SUBTITLE
-                Placeholder.HEADER, Placeholder.FOOTER -> TextType.HEADER
-                Placeholder.BODY -> TextType.BODY
-                else -> TextType.BODY
-            }
-            paragraphs.add(
-                Text(
-                    content = paragraph.text,
-                    fontFamily = fontName,
-                    fontSize = fontSize,
-                    isBold = isBold,
-                    isItalic = isItalic,
-                    textColor = textColor,
-                    contentType = contentType,
-                    isBullet = isBullet,
-                    bulletCharacter = bulletCharacter,
-                    indentLevel = indentLevel,
-                    width = anchor.width,
-                    height = anchor.height
-                )
-            )
-        }
-        return paragraphs
-    }
 
     private fun convertImageElement(pictureShape: XSLFPictureShape): Image {
         val pictureData = pictureShape.pictureData
@@ -136,47 +155,6 @@ class PptxParser {
             logger.log(Level.WARNING, "Error getting color", e)
         }
         return null
-    }
-
-    private fun detectListGroups(texts: List<Text>): List<List<Text>> {
-        val listGroups = mutableListOf<MutableList<Text>>()
-        val groupStack = ArrayDeque<MutableList<Text>>()
-        var previousIndent: Int? = null
-
-        for (text in texts) {
-            if (isListItem(text)) {
-                val indent = text.indentLevel ?: 0
-                while (groupStack.size > 1 && (previousIndent ?: 0) > indent) {
-                    groupStack.removeLast()
-                }
-                if (groupStack.isEmpty() || indent > (previousIndent ?: 0)) {
-                    val newGroup = mutableListOf<Text>()
-                    listGroups.add(newGroup)
-                    groupStack.addLast(newGroup)
-                }
-                groupStack.last().add(text)
-                previousIndent = indent
-            } else {
-                groupStack.clear()
-                previousIndent = null
-                continue
-            }
-        }
-        return listGroups
-    }
-
-    private fun isListItem(text: Text): Boolean {
-        // if the text is bulleted
-        if (text.isBullet) {
-            return true
-        }
-
-        // if the text custom numbering
-//        val trimmed = text.content?.trim()
-//        val numberedPattern = Regex("""^\(?\d+[.)]""")
-//
-//        return numberedPattern.containsMatchIn(trimmed.toString())
-        return false
     }
 
     fun getTextShapeVerticalPosition(textShape: XSLFTextShape, slideHeight: Int): String {
@@ -208,4 +186,26 @@ class PptxParser {
         return number
     }
 
+    fun detectContentType(
+        textType: Placeholder?,
+        anchor: Rectangle2D,
+        fontSize: Double?,
+        slideHeight: Int,
+        isBullet: Boolean
+    ): TextType {
+        return when {
+            textType == Placeholder.TITLE || textType == Placeholder.CENTERED_TITLE -> TextType.TITLE
+            textType == Placeholder.SUBTITLE -> TextType.SUBTITLE
+            textType == Placeholder.HEADER -> TextType.HEADER
+            textType == Placeholder.FOOTER -> TextType.FOOTER
+            textType == Placeholder.SLIDE_NUMBER -> TextType.SLIDE_NUMBER
+            textType == Placeholder.BODY &&
+                    (anchor.y < slideHeight / 4 && (fontSize ?: 0.0) >= 24.0) -> TextType.TITLE
+
+            textType == Placeholder.BODY || textType == null ->
+                if (isBullet) TextType.LIST_ITEM else TextType.BODY
+
+            else -> TextType.OTHER
+        }
+    }
 }

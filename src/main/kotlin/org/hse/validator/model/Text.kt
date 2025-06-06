@@ -5,7 +5,14 @@ import java.awt.Color
 
 enum class FontType { SERIF, SANS_SERIF, UNKNOWN }
 enum class TextType {
-    HEADER, TITLE, SUBTITLE, BODY, OTHER, CENTERED_TITLE
+    TITLE,
+    SUBTITLE,
+    HEADER,
+    FOOTER,
+    SLIDE_NUMBER,
+    BODY,
+    LIST_ITEM,
+    OTHER
 }
 
 data class Text(
@@ -16,10 +23,8 @@ data class Text(
     var isItalic: Boolean = false,
     var isUnderline: Boolean = false,
     var textColor: Color? = null,
-    var isBullet: Boolean = false,
     var contentType: TextType? = null,
     val bulletCharacter: String? = null,
-    val indentLevel: Int?,
     val width: Double = 0.0,
     val height: Double = 0.0,
 ) {

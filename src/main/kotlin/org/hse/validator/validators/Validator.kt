@@ -36,7 +36,7 @@ class Validator(private val rules: List<Rule>) {
                     presentation.slides.forEach { slide ->
                         slide.texts?.forEach { text ->
                             if (!rule.validateText(text)) {
-                                results += ValidationResult(rule, rule.message(text.content), slide.number)
+                                results += ValidationResult(rule, rule.message(text.contentType.toString()), slide.number)
                             }
                         }
                     }
@@ -54,7 +54,6 @@ fun printValidationReport(
     results: List<ValidationResult>,
     slides: List<Slide>
 ) {
-    // Presentation-level errors (где slideNumber == null)
     val globalErrors = results.filter { it.slideNumber == null }
         .groupingBy { it.message }.eachCount()
     if (globalErrors.isNotEmpty()) {
@@ -65,7 +64,6 @@ fun printValidationReport(
         println()
     }
 
-    // Слайды по возрастанию
     val slidesByNumber = slides.associateBy { it.number }
     val slideErrors = results.filter { it.slideNumber != null }
         .groupBy { it.slideNumber }

@@ -18,7 +18,7 @@ class FontSizeRule(private val bodyMin: Double = 14.0,
                    private val bodyMax: Double = 22.0,
                    private val titleMin: Double = 28.0,
                    private val titleMax: Double = 36.0) : TextRule() {
-    override fun message(msg: String?): String = "Incorrect font size: headings $titleMin-$titleMax pt, main text $bodyMin-$bodyMax pt"
+    override fun message(msg: String?): String = "Incorrect font size: headings $titleMin-$titleMax pt, main text $bodyMin-$bodyMax pt but was $msg"
     override fun validateText(text: Text): Boolean {
         val size = text.fontSize ?: return false
         return when (text.contentType) {
