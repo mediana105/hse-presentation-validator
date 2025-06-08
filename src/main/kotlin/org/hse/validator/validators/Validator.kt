@@ -8,27 +8,31 @@ import org.hse.validator.rules.TextRule
 import org.springframework.stereotype.Component
 
 data class ValidationResult(
-    val rule: Rule,
+    val ruleName: String,
     val message: String,
-    val slideNumber: Int? = null
+    val details: List<ViolationDetail>
+)
+
+data class ViolationDetail(
+    val slideNumber: Int?
 )
 
 @Component
 class Validator() {
     fun validate(presentation: Presentation, rules: List<Rule>): List<ValidationResult> {
-        val results = mutableListOf<ValidationResult>()
+        val raw = mutableListOf<Triple<String, String, Int?>>()
         for (rule in rules) {
             when (rule) {
                 is PresentationRule -> {
                     if (!rule.validate(presentation)) {
-                        results += ValidationResult(rule, rule.message())
+                        raw += Triple(rule.javaClass.simpleName, rule.message(), null)
                     }
                 }
 
                 is SlideRule -> {
                     presentation.slides.forEach { slide ->
                         if (!rule.validateSlide(slide)) {
-                            results += ValidationResult(rule, rule.message(), slide.number)
+                            raw += Triple(rule.javaClass.simpleName, rule.message(), slide.number)
                         }
                     }
                 }
@@ -37,11 +41,7 @@ class Validator() {
                     presentation.slides.forEach { slide ->
                         slide.texts?.forEach { text ->
                             if (!rule.validateText(text)) {
-                                results += ValidationResult(
-                                    rule,
-                                    rule.message(text.contentType.toString() + " " + text.fontSize),
-                                    slide.number
-                                )
+                                raw += Triple(rule.javaClass.simpleName, rule.message(""), slide.number)
                             }
                         }
                     }
@@ -51,7 +51,15 @@ class Validator() {
                 }
             }
         }
-        return results
+        return raw
+            .groupBy { it.first to it.second }
+            .map { (key, group) ->
+                val (ruleName, message) = key
+                ValidationResult(
+                    ruleName = ruleName,
+                    message = message,
+                    details = group.map { ViolationDetail(it.third) }
+                )
+            }
     }
-
 }

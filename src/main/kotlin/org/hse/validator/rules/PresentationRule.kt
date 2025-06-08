@@ -6,4 +6,3 @@ import org.hse.validator.model.Presentation
 sealed class PresentationRule : Rule {
     abstract override fun validate(presentation: Presentation): Boolean
 }
-

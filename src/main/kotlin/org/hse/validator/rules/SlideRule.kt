@@ -14,4 +14,3 @@ sealed class SlideRule : Rule {
         return slide.isTitleSlide
     }
 }
-

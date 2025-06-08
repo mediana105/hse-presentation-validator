@@ -9,4 +9,3 @@ open class ValidatorApplication
 fun main(args: Array<String>) {
     runApplication<ValidatorApplication>(*args)
 }
-
