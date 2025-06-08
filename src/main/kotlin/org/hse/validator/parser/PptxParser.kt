@@ -8,12 +8,14 @@ import org.apache.poi.xslf.usermodel.XSLFPictureShape
 import org.apache.poi.xslf.usermodel.XSLFSlide
 import org.apache.poi.xslf.usermodel.XSLFTextShape
 import org.hse.validator.model.*
+import org.springframework.stereotype.Component
 import java.awt.Color
 import java.awt.geom.Rectangle2D
 import java.io.FileInputStream
 import java.util.logging.Level
 import java.util.logging.Logger
 
+@Component
 class PptxParser {
     private val logger: Logger = Logger.getLogger(PptxParser::class.java.name)
 

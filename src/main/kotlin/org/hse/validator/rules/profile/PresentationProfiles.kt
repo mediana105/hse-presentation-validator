@@ -5,12 +5,12 @@ import org.hse.validator.rules.Rule
 
 object PresentationProfiles {
     fun rulesFor(type: String): List<Rule> = when (type.lowercase()) {
-        "вкр" -> vkrRules()
-        "курсовая" -> courseworkRules()
+        "вкр" -> finalQualificationWorkRules()
+        "курсовая" -> courseWorkRules()
         else -> throw IllegalArgumentException("Unknown type: $type")
     }
 
-    private fun vkrRules() = presentationRules {
+    private fun finalQualificationWorkRules() = presentationRules {
         structure {
             limitSlidesCount(10, 18)
             requireSlideFormat(setOf("16:9", "4:3"))
@@ -52,7 +52,7 @@ object PresentationProfiles {
     }
 
 
-    private fun courseworkRules() = presentationRules {
+    private fun courseWorkRules() = presentationRules {
         structure {
             limitSlidesCount(10, 15)
             requireSlideFormat(setOf("16:9", "4:3"))
