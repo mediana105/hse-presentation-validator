@@ -5,8 +5,8 @@ import org.hse.validator.rules.Rule
 
 object PresentationProfiles {
     fun rulesFor(type: String): List<Rule> = when (type.lowercase()) {
-        "вкр" -> finalQualificationWorkRules()
-        "курсовая" -> courseWorkRules()
+        "выпускная квалификационная работа (вкр)" -> finalQualificationWorkRules()
+        "курсовая работа" -> courseWorkRules()
         else -> throw IllegalArgumentException("Unknown type: $type")
     }
 

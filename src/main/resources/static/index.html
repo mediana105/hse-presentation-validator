@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Валидатор презентаций</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 700px;
+            margin: 32px auto;
+        }
+        h1 {
+            color: #000000;
+        }
+        form {
+            margin-bottom: 32px;
+        }
+        .rule-block {
+            margin-bottom: 10px;
+            border: 1px solid #DCDCDC;
+            border-radius: 8px;
+            padding: 10px;
+        }
+        .rule-header {
+            cursor: pointer;
+            font-weight: bold;
+            color: #000000;
+            margin-bottom: 10px;
+        }
+        .rule-description {
+            color: #696969;
+            margin-bottom: 8px;
+        }
+        .slide-list {
+            margin: 0;
+            padding: 0 0 0 20px;
+            display: none;
+        }
+        .slide-list.active {
+            display: block;
+        }
+        .slide-number {
+            display: inline-block;
+            background: #D3D3D3;
+            border-radius: 4px;
+            padding: 2px 8px;
+            margin: 2px;
+        }
+        #result {
+            min-height: 40px;
+        }
+        button {
+            background: #D3D3D3;
+            color: #000000;
+            border: none;
+            padding: 6px 16px;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        button:hover {
+            background: #696969;
+        }
+        input[type="file"] { margin-top: 4px; }
+    </style>
+</head>
+<body>
+<h1>Валидатор презентаций</h1>
+<form id="uploadForm">
+    <label>Тип презентации:
+        <select name="type">
+            <option value="Выпускная квалификационная работа (ВКР)">ВКР</option>
+            <option value="Курсовая работа">Курсовая</option>
+        </select>
+    </label>
+    <br>
+    <label>Файл презентации (.pptx):
+        <input type="file" name="file" required>
+    </label>
+    <br>
+    <button type="submit">Проверить</button>
+</form>
+<h2>Результат проверки:</h2>
+<div id="result"></div>
+
+<script>
+    const form = document.getElementById('uploadForm');
+    form.onsubmit = async (e) => {
+        e.preventDefault();
+        const formData = new FormData(form);
+        document.getElementById('result').innerHTML = 'Проверка...';
+
+        try {
+            const response = await fetch('/api/validate', { method: 'POST', body: formData });
+            if (!response.ok) {
+                document.getElementById('result').innerHTML = "Ошибка сервера: " + response.status;
+                return;
+            }
+            const data = await response.json();
+            showResult(data);
+        } catch (err) {
+            document.getElementById('result').innerHTML = "Ошибка: " + err;
+        }
+    };
+
+    function showResult(data) {
+        if (!data || !data.length) {
+            document.getElementById('result').innerHTML = "<b>Ошибок не найдено!</b>";
+            return;
+        }
+        let html = "";
+        data.forEach((rule, idx) => {
+            html += `<div class="rule-block">
+                <div class="rule-header" onclick="toggleSlides(${idx})">${rule.ruleName}</div>
+                <div class="rule-description">${rule.message}</div>
+                <ul class="slide-list" id="slides-${idx}">
+                    ${rule.details.map(det =>
+                        `<li>Слайд <span class="slide-number">${det.slideNumber === null ? "вся презентация" : det.slideNumber}</span>
+                        ${det.value ? " (" + det.value + ")" : ""}</li>`
+                    ).join("")}
+                </ul>
+            </div>`;
+        });
+        document.getElementById('result').innerHTML = html;
+    }
+    function toggleSlides(idx) {
+        const elem = document.getElementById(`slides-${idx}`);
+        if (elem) elem.classList.toggle('active');
+    }
+</script>
+</body>
+</html>
