@@ -25,6 +25,9 @@ class FontsRules(private val slideRules: SlideRules) {
     fun requireSansSerifMainText() = slideRules.requireSansSerifMainText()
     fun fontSizeRule(bodyMin: Double = 14.0, bodyMax: Double = 22.0, titleMin: Double = 28.0, titleMax: Double = 36.0) =
         slideRules.fontSizeRule(bodyMin, bodyMax, titleMin, titleMax)
+    fun SlideRules.fontStyleCountRule(maxBold: Int, maxItalic: Int, maxUnderline: Int) {
+        rule(TextStyleCountRule(maxBold, maxItalic, maxUnderline))
+    }
 }
 
 fun StyleRules.fonts(block: FontsRules.() -> Unit) {
