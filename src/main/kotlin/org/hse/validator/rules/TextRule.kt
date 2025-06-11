@@ -9,7 +9,7 @@ sealed class TextRule : Rule {
 
     final override fun validate(presentation: Presentation): Boolean {
         return presentation.slides.all { slide ->
-            slide.texts?.all { text -> validateText(text) } ?: true
+            slide.texts?.all { text -> validateText(text) } != false
         }
     }
 }

@@ -1,9 +1,10 @@
 package org.hse.validator.controller
 
+import org.hse.validator.dto.groupBySlideAndRule
 import org.hse.validator.parser.PptxParser
 import org.hse.validator.rules.profile.PresentationProfiles
-import org.hse.validator.validators.ValidationResult
 import org.hse.validator.validators.Validator
+import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
 import org.springframework.web.multipart.MultipartFile
 
@@ -19,7 +20,10 @@ class PresentationController(
         @RequestParam("type") type: String,
         @RequestPart("file") file: MultipartFile,
         @RequestParam("dsl", required = false) dsl: String?
-    ): List<ValidationResult> {
+    ): ResponseEntity<Any> {
+        if (file.originalFilename?.lowercase()?.endsWith(".pptx") != true) {
+            return ResponseEntity.badRequest().body(mapOf("error" to "Выберите файл в формате .pptx"))
+        }
         val tempFile = kotlin.io.path.createTempFile(suffix = ".pptx").toFile()
         file.inputStream.use { input ->
             tempFile.outputStream().use { output ->
@@ -34,6 +38,6 @@ class PresentationController(
         }
 
         val results = validator.validate(presentation, rules)
-        return results
+        return ResponseEntity.ok(results.groupBySlideAndRule())
     }
 }

@@ -92,41 +92,74 @@
 
         try {
             const response = await fetch('/api/validate', { method: 'POST', body: formData });
+            let data = null;
+            try {
+                data = await response.json();
+                console.log(data); 
+            } catch (e) {
+            }
             if (!response.ok) {
-                document.getElementById('result').innerHTML = "Ошибка сервера: " + response.status;
+                document.getElementById('result').innerHTML =
+                    data && data.error ? data.error : "Ошибка сервера: " + response.status;
                 return;
             }
-            const data = await response.json();
             showResult(data);
         } catch (err) {
             document.getElementById('result').innerHTML = "Ошибка: " + err;
         }
     };
-
     function showResult(data) {
         if (!data || !data.length) {
             document.getElementById('result').innerHTML = "<b>Ошибок не найдено!</b>";
             return;
         }
         let html = "";
-        data.forEach((rule, idx) => {
+        data.forEach((slide, slideIdx) => {
             html += `<div class="rule-block">
-                <div class="rule-header" onclick="toggleSlides(${idx})">${rule.ruleName}</div>
-                <div class="rule-description">${rule.message}</div>
-                <ul class="slide-list" id="slides-${idx}">
-                    ${rule.details.map(det =>
-                        `<li>Слайд <span class="slide-number">${det.slideNumber === null ? "вся презентация" : det.slideNumber}</span>
-                        ${det.value ? " (" + det.value + ")" : ""}</li>`
+                <div class="rule-header" onclick="toggleGroups(${slideIdx})">
+                    Слайд ${slide.slideNumber ?? "Вся презентация"}
+                </div>
+                <div class="slide-list" id="groups-${slideIdx}" style="display:none;">
+                    ${(slide.groups ?? []).map((group, groupIdx) =>
+                        `<div class="rule-description" onclick="toggleErrors(${slideIdx},${groupIdx}, event)">
+                            ${group.ruleMessage}
+                            ${
+                                group.errorFragments && group.errorFragments.length > 0
+                                ? `<ul class="slide-list" id="errors-${slideIdx}-${groupIdx}" style="display:none;">
+                                    ${group.errorFragments.map(fragment =>
+                                        `<li>
+                                            ${fragment ? `<div class="slide-number">${fragment}</div>` : ""}
+                                        </li>`
+                                    ).join("")}
+                                </ul>`
+                                : ""
+                            }
+                        </div>`
                     ).join("")}
-                </ul>
+                </div>
             </div>`;
         });
         document.getElementById('result').innerHTML = html;
     }
-    function toggleSlides(idx) {
-        const elem = document.getElementById(`slides-${idx}`);
-        if (elem) elem.classList.toggle('active');
+
+
+    function toggleGroups(slideIdx) {
+        const elem = document.getElementById(`groups-${slideIdx}`);
+        if (elem) elem.style.display = elem.style.display === 'none' ? 'block' : 'none';
     }
+
+    function toggleErrors(slideIdx, groupIdx, event) {
+        event.stopPropagation();
+        const elem = document.getElementById(`errors-${slideIdx}-${groupIdx}`);
+        if (elem) elem.style.display = elem.style.display === 'none' ? 'block' : 'none';
+    }
+
+    const groupedBySlide = data.reduce((acc, err) => {
+    const key = err.slideNumber ?? "Вся презентация";
+    if (!acc[key]) acc[key] = [];
+    acc[key].push(err);
+    return acc;
+}, {});
 </script>
 </body>
 </html>
