@@ -1,4 +1,4 @@
-package org.hse.validator.rules
+package org.hse.validator.validators.rules
 
 import org.hse.validator.model.Slide
 import org.hse.validator.model.TextType
@@ -79,7 +79,9 @@ class ListSizeRule(
 class HeaderFormatRule(
     private val maxWords: Int = 10
 ) : SlideRule() {
-    override fun message(msg: String?): String = "Header should not end with a dot and should not exceed $maxWords words"
+    override fun message(msg: String?): String =
+        "Header should not end with a dot and should not exceed $maxWords words"
+
     override fun validateSlide(slide: Slide): Boolean {
         val headers = slide.texts?.filter { it.contentType == TextType.TITLE } ?: return true
         return headers.all { text ->
@@ -153,7 +155,7 @@ class ContrastRatioRule(
 }
 
 class TextToImageAreaRatioRule(
-    private val maxTextPercent: Int = 70 // например, не более 70% площади текста
+    private val maxTextPercent: Int = 70
 ) : SlideRule() {
     override fun message(msg: String?): String = "Text must not occupy more than $maxTextPercent% of the content area"
 
@@ -171,5 +173,22 @@ class TextToImageAreaRatioRule(
 
         val textPercent = (textArea * 100.0) / totalArea
         return textPercent <= maxTextPercent
+    }
+}
+
+class TextStyleCountRule(
+    private val maxBold: Int,
+    private val maxItalic: Int,
+    private val maxUnderline: Int
+) : SlideRule() {
+    override fun message(msg: String?): String =
+        "The amount of selected text has been exceeded: bold ≤ $maxBold, italic ≤ $maxItalic, underline ≤ $maxUnderline"
+
+    override fun validateSlide(slide: Slide): Boolean {
+        val texts = slide.texts ?: return true
+        val boldCount = texts.count { it.isBold }
+        val italicCount = texts.count { it.isItalic }
+        val underlineCount = texts.count { it.isUnderline }
+        return boldCount <= maxBold && italicCount <= maxItalic && underlineCount <= maxUnderline
     }
 }

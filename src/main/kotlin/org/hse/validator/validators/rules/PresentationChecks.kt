@@ -1,4 +1,4 @@
-package org.hse.validator.rules
+package org.hse.validator.validators.rules
 
 import org.hse.validator.model.Presentation
 
@@ -22,22 +22,6 @@ class MaxFontVarietyRule(private val maxFonts: Int = 3) : PresentationRule() {
             .mapNotNull { it.fontFamily }
             .toSet()
         return fonts.size <= maxFonts
-    }
-}
-
-class TextStyleCountRule(
-    private val maxBold: Int,
-    private val maxItalic: Int,
-    private val maxUnderline: Int
-) : PresentationRule() {
-    override fun message(msg: String?): String = "The amount of selected text has been exceeded: bold ≤ $maxBold, italic ≤ $maxItalic, underline ≤ $maxUnderline"
-
-    override fun validate(presentation: Presentation): Boolean {
-        val allTexts = presentation.slides.flatMap { it.texts ?: emptyList() }
-        val boldCount = allTexts.count { it.isBold }
-        val italicCount = allTexts.count { it.isItalic }
-        val underlineCount = allTexts.count { it.isUnderline }
-        return boldCount <= maxBold && italicCount <= maxItalic && underlineCount <= maxUnderline
     }
 }
 

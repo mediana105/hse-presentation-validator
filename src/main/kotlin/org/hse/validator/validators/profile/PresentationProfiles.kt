@@ -1,7 +1,7 @@
-package org.hse.validator.rules.profile
+package org.hse.validator.validators.profile
 
 import org.hse.validator.dsl.*
-import org.hse.validator.rules.Rule
+import org.hse.validator.validators.rules.Rule
 
 object PresentationProfiles {
     fun rulesFor(type: String): List<Rule> = when (type.lowercase()) {
@@ -15,6 +15,7 @@ object PresentationProfiles {
             limitSlidesCount(10, 18)
             requireSlideFormat(setOf("16:9", "4:3"))
             requireMandatorySlides(listOf("Введение", "Заключение", "Список литературы"))
+            limitColors(3)
         }
         slide {
             requireTitleSlideFields()
@@ -27,7 +28,6 @@ object PresentationProfiles {
                 limitFontVariety(3)
                 colors {
                     requireContrast(4.5, 3.0)
-                    limitColorsUsed(3)
                 }
             }
             header {
@@ -57,6 +57,7 @@ object PresentationProfiles {
             limitSlidesCount(10, 15)
             requireSlideFormat(setOf("16:9", "4:3"))
             requireMandatorySlides(listOf("Введение", "Заключение"))
+            limitColors(3)
         }
         slide {
             style {
@@ -68,7 +69,6 @@ object PresentationProfiles {
                 limitFontVariety(3)
                 colors {
                     requireContrast(4.5, 3.0)
-                    limitColorsUsed(3)
                 }
             }
             header {

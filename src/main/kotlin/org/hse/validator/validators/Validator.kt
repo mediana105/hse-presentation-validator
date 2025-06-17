@@ -3,10 +3,10 @@ package org.hse.validator.validators
 import org.hse.validator.model.Presentation
 import org.hse.validator.model.Slide
 import org.hse.validator.model.Text
-import org.hse.validator.rules.PresentationRule
-import org.hse.validator.rules.Rule
-import org.hse.validator.rules.SlideRule
-import org.hse.validator.rules.TextRule
+import org.hse.validator.validators.rules.PresentationRule
+import org.hse.validator.validators.rules.Rule
+import org.hse.validator.validators.rules.SlideRule
+import org.hse.validator.validators.rules.TextRule
 import org.springframework.stereotype.Component
 
 data class RawViolation(

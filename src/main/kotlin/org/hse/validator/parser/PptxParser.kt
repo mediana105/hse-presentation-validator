@@ -210,4 +210,13 @@ class PptxParser {
             else -> TextType.OTHER
         }
     }
+
+    fun findLargestFontSize(textShapes: List<XSLFTextShape>): Double {
+        return textShapes
+            .flatMap { it.textParagraphs }
+            .flatMap { it.textRuns }
+            .mapNotNull { it.fontSize }
+            .maxOrNull() ?: 0.0
+    }
+
 }

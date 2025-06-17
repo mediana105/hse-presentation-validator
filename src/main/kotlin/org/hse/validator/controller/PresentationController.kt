@@ -2,7 +2,7 @@ package org.hse.validator.controller
 
 import org.hse.validator.dto.groupBySlideAndRule
 import org.hse.validator.parser.PptxParser
-import org.hse.validator.rules.profile.PresentationProfiles
+import org.hse.validator.validators.profile.PresentationProfiles
 import org.hse.validator.validators.Validator
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*

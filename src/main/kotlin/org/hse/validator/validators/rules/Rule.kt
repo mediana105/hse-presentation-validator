@@ -1,4 +1,4 @@
-package org.hse.validator.rules
+package org.hse.validator.validators.rules
 
 import org.hse.validator.model.Presentation
 
