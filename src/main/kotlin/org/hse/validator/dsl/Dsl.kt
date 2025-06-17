@@ -1,26 +1,18 @@
 package org.hse.validator.dsl
 
-// structure section
+// Structure section: rules related to slide deck structure
 class StructureRules {
-    var slidesCountRange: Pair<Int, Int>? = null
-    var requiredFormats: Set<String>? = null
-    var mandatorySlidesList: List<String>? = null
-    var limitColors: Int? = null
+    var slidesCountRange: Pair<Int, Int>? = null // allowed slide count range (min, max)
+    var requiredFormats: Set<String>? = null // allowed slide formats
+    var mandatorySlides: List<String>? = null // list of mandatory slide names
+    var limitColors: Int? = null // max number of colors allowed
 
-    fun limitSlidesCount(min: Int, max: Int) {
-        slidesCountRange = min to max
-    }
-
-    fun requireSlideFormat(formats: Set<String>) {
+    fun requiredFormats(formats: Set<String>) {
         requiredFormats = formats
     }
 
-    fun requireMandatorySlides(names: List<String>) {
-        mandatorySlidesList = names
-    }
-
-    fun limitColors(maxColor: Int) {
-        limitColors = maxColor
+    fun mandatorySlides(names: List<String>) {
+        mandatorySlides = names
     }
 }
 
@@ -29,23 +21,19 @@ fun PresentationRulesBuilder.structure(block: StructureRules.() -> Unit) {
     this.structureRules = structureRules
 }
 
-// style and design section
+// Style and design section: visual style related rules
 class StyleRules {
-    var fontsRules: FontsRules? = null
-    var colorsRules: ColorsRules? = null
+    var fonts: FontsRules? = null
+    var colors: ColorsRules? = null
 
-    var limitFontVariety: Int? = null
-
-    fun limitFontVariety(maxFonts: Int) {
-        limitFontVariety = maxFonts
-    }
+    var limitFontVariety: Int? = null // max number of different fonts
 
     fun fonts(block: FontsRules.() -> Unit) {
-        fontsRules = FontsRules().apply(block)
+        fonts = FontsRules().apply(block)
     }
 
     fun colors(block: ColorsRules.() -> Unit) {
-        colorsRules = ColorsRules().apply(block)
+        colors = ColorsRules().apply(block)
     }
 }
 
@@ -53,27 +41,23 @@ fun SlideRules.style(block: StyleRules.() -> Unit) {
     styleRules = StyleRules().apply(block)
 }
 
-// fonts subsection
+// Fonts subsection: font-related constraints
 class FontsRules {
-    var sansSerifRequired: Boolean = false
-    var fontSizeRuleParams: FontSizeRuleParams? = null
-    var fontStyleCountRuleParams: FontStyleCountRuleParams? = null
+    var sansSerifRequired: Boolean = false // whether sans-serif font is mandatory
+    var fontSizeRange: FontSizeRuleParams? = null // allowed font size ranges
+    var fontStyleRange: FontStyleCountRuleParams? = null // max count for bold, italic, underline styles
 
-    fun requireSansSerifMainText() {
-        sansSerifRequired = true
-    }
-
-    fun fontSizeRule(
+    fun fontSizeRange(
         bodyMin: Double = 14.0,
         bodyMax: Double = 22.0,
         titleMin: Double = 28.0,
         titleMax: Double = 36.0
     ) {
-        fontSizeRuleParams = FontSizeRuleParams(bodyMin, bodyMax, titleMin, titleMax)
+        fontSizeRange = FontSizeRuleParams(bodyMin, bodyMax, titleMin, titleMax)
     }
 
-    fun fontStyleCountRule(maxBold: Int, maxItalic: Int, maxUnderline: Int) {
-        fontStyleCountRuleParams = FontStyleCountRuleParams(maxBold, maxItalic, maxUnderline)
+    fun maxFontStyle(maxBold: Int, maxItalic: Int, maxUnderline: Int) {
+        fontStyleRange = FontStyleCountRuleParams(maxBold, maxItalic, maxUnderline)
     }
 }
 
@@ -86,12 +70,12 @@ data class FontStyleCountRuleParams(
     val maxBold: Int, val maxItalic: Int, val maxUnderline: Int
 )
 
-// colors subsection
+// Colors subsection: color contrast rules
 class ColorsRules {
-    var contrastRuleParams: ContrastRuleParams? = null
+    var contrastThresholds: ContrastRuleParams? = null // contrast thresholds for text and large text
 
-    fun requireContrast(minContrastForText: Double = 4.5, minContrastForLargeText: Double = 3.0) {
-        contrastRuleParams = ContrastRuleParams(minContrastForText, minContrastForLargeText)
+    fun contrastThresholds(minContrastForText: Double = 4.5, minContrastForLargeText: Double = 3.0) {
+        contrastThresholds = ContrastRuleParams(minContrastForText, minContrastForLargeText)
     }
 }
 
@@ -100,10 +84,10 @@ data class ContrastRuleParams(
     val minContrastForLargeText: Double
 )
 
-// headers section
+// Headers section: rules for slide headers
 class HeaderRules {
-    var headerFormatRequired: Boolean = false
-    var maxWordsCount: Int = 10
+    var headerFormatRequired: Boolean = false // is header format mandatory?
+    var maxWordsCount: Int = 10 // max allowed words in header
 
     fun requireHeaderFormat(maxWords: Int = 10) {
         headerFormatRequired = true
@@ -115,63 +99,40 @@ fun SlideRules.header(block: HeaderRules.() -> Unit) {
     headerRules = HeaderRules().apply(block)
 }
 
-// lists section
+// Lists section: rules for lists formatting
 class ListsRules {
-    var listSizeRange: Pair<Int, Int>? = null
-    var uniformCapitalizationRequired: Boolean = false
-    var forbidEndPunctuation: Boolean = false
-    var forbidSingleItems: Boolean = false
-
-    fun requireListsHaveBetween(min: Int, max: Int) {
-        listSizeRange = min to max
-    }
-
-    fun requireUniformListCapitalization() {
-        uniformCapitalizationRequired = true
-    }
-
-    fun forbidListEndPunctuation() {
-        forbidEndPunctuation = true
-    }
-
-    fun forbidSingleItemLists() {
-        forbidSingleItems = true
-    }
+    var listSizeRange: Pair<Int, Int>? = null // allowed size range for lists
+    var uniformCapitalizationRequired: Boolean = false // uniform capitalization required?
+    var endPunctuationForbidden: Boolean = false // forbid punctuation at end of list items
+    var singleItemsForbidden: Boolean = false // forbid single-item lists
 }
 
 fun SlideRules.lists(block: ListsRules.() -> Unit) {
     listsRules = ListsRules().apply(block)
 }
 
+// Numbering section: slide numbering rules
 class NumberingRules {
-    var slideNumberingRequired: Boolean = false
-
-    fun requireSlideNumbering() {
-        slideNumberingRequired = true
-    }
+    var slideNumberingRequired: Boolean = false // is slide numbering required?
 }
 
 fun SlideRules.numbering(block: NumberingRules.() -> Unit) {
     numberingRules = NumberingRules().apply(block)
 }
 
-// graphics section
+// Graphics section: rules about images and text ratio
 class GraphicsRules {
-    var maxTextPercentage: Int? = null
-
-    fun requireTextToImageAreaRatio(maxTextPercent: Int = 70) {
-        maxTextPercentage = maxTextPercent
-    }
+    var maxTextPercentage: Int? = null // max allowed text area percentage on images
 }
 
 fun SlideRules.graphics(block: GraphicsRules.() -> Unit) {
     graphicsRules = GraphicsRules().apply(block)
 }
 
-// content section
+// Content section: rules about slide content limits
 class ContentRules {
-    var maxLinesPerSlide: Int? = null
-    var maxWordsPerSlide: Int? = null
+    var maxLinesPerSlide: Int? = null // max lines per slide
+    var maxWordsPerSlide: Int? = null // max words per slide
 
     fun limitTextPerSlide(maxLines: Int = 10, maxWords: Int = 10) {
         maxLinesPerSlide = maxLines
@@ -183,7 +144,7 @@ fun SlideRules.content(block: ContentRules.() -> Unit) {
     contentRules = ContentRules().apply(block)
 }
 
-// SlideRules additions for internal state
+// SlideRules: container for all slide-specific rules
 class SlideRules {
     var styleRules: StyleRules? = null
     var headerRules: HeaderRules? = null
@@ -191,6 +152,5 @@ class SlideRules {
     var numberingRules: NumberingRules? = null
     var graphicsRules: GraphicsRules? = null
     var contentRules: ContentRules? = null
-    fun requireTitleSlideFields() = {
-    }
+    fun requireTitleSlideFields() = {} // placeholder for title slide checks
 }

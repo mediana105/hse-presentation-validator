@@ -15,7 +15,7 @@ object RulesBuilder {
             struct.requiredFormats?.let { formats ->
                 rules.add(SlideFormatRule(formats))
             }
-            struct.mandatorySlidesList?.let { names ->
+            struct.mandatorySlides?.let { names ->
                 rules.add(MandatorySlidesRule(names))
             }
             struct.limitColors?.let { maxColor ->
@@ -29,19 +29,19 @@ object RulesBuilder {
             }
             slideRules.styleRules?.let { style ->
                 // Fonts rules
-                style.fontsRules?.let { fonts ->
+                style.fonts?.let { fonts ->
                     if (fonts.sansSerifRequired) rules.add(SansSerifFontRule())
-                    fonts.fontSizeRuleParams?.let { params ->
+                    fonts.fontSizeRange?.let { params ->
                         rules.add(FontSizeRule(params.bodyMin, params.bodyMax, params.titleMin, params.titleMax))
                     }
-                    fonts.fontStyleCountRuleParams?.let { params ->
+                    fonts.fontStyleRange?.let { params ->
                         rules.add(TextStyleCountRule(params.maxBold, params.maxItalic, params.maxUnderline))
                     }
                 }
 
                 // Colors rules
-                style.colorsRules?.let { colors ->
-                    colors.contrastRuleParams?.let { params ->
+                style.colors?.let { colors ->
+                    colors.contrastThresholds?.let { params ->
                         rules.add(ContrastRatioRule(params.minContrastForText, params.minContrastForLargeText))
                     }
                 }
@@ -64,8 +64,8 @@ object RulesBuilder {
                     rules.add(ListSizeRule(min, max))
                 }
                 if (lists.uniformCapitalizationRequired) rules.add(UniformListCapitalizationRule())
-                if (lists.forbidEndPunctuation) rules.add(ForbidListEndPunctuationRule())
-                if (lists.forbidSingleItems) rules.add(ForbidSingleItemListRule())
+                if (lists.endPunctuationForbidden) rules.add(ForbidListEndPunctuationRule())
+                if (lists.singleItemsForbidden) rules.add(ForbidSingleItemListRule())
             }
 
             // Numbering rules

@@ -12,38 +12,38 @@ object PresentationProfiles {
 
     private fun finalQualificationWorkRules() = presentationRules {
         structure {
-            limitSlidesCount(10, 18)
-            requireSlideFormat(setOf("16:9", "4:3"))
-            requireMandatorySlides(listOf("Введение", "Заключение", "Список литературы"))
-            limitColors(3)
+            slidesCountRange = 10 to 18
+            requiredFormats(setOf("16:9", "4:3"))
+            mandatorySlides(listOf("Введение", "Заключение", "Список литературы"))
+            limitColors = 3
         }
         slide {
             requireTitleSlideFields()
             style {
                 fonts {
-                    requireSansSerifMainText()
-                    fontSizeRule(bodyMin = 18.0, bodyMax = 24.0, titleMin = 28.0, titleMax = 32.0)
-                    fontStyleCountRule(maxBold = 10, maxItalic = 10, maxUnderline = 3)
+                    sansSerifRequired = true
+                    fontSizeRange(bodyMin = 18.0, bodyMax = 24.0, titleMin = 28.0, titleMax = 32.0)
+                    maxFontStyle(maxBold = 10, maxItalic = 10, maxUnderline = 3)
                 }
-                limitFontVariety(3)
+                limitFontVariety = 3
                 colors {
-                    requireContrast(4.5, 3.0)
+                    contrastThresholds(4.5, 3.0)
                 }
             }
             header {
                 requireHeaderFormat(10)
             }
             lists {
-                requireListsHaveBetween(3, 7)
-                requireUniformListCapitalization()
-                forbidListEndPunctuation()
-                forbidSingleItemLists()
+                listSizeRange = 3 to 7
+                uniformCapitalizationRequired = true
+                singleItemsForbidden = true
+                endPunctuationForbidden = true
             }
             numbering {
-                requireSlideNumbering()
+                slideNumberingRequired = true
             }
             graphics {
-                requireTextToImageAreaRatio(70)
+                maxTextPercentage = 70
             }
             content {
                 limitTextPerSlide(maxLines = 10, maxWords = 40)
@@ -54,37 +54,37 @@ object PresentationProfiles {
 
     private fun courseWorkRules() = presentationRules {
         structure {
-            limitSlidesCount(10, 15)
-            requireSlideFormat(setOf("16:9", "4:3"))
-            requireMandatorySlides(listOf("Введение", "Заключение"))
-            limitColors(3)
+            slidesCountRange = 10 to 15
+            requiredFormats(setOf("16:9", "4:3"))
+            mandatorySlides(listOf("Введение", "Заключение"))
+            limitColors = 3
         }
         slide {
             style {
                 fonts {
-                    requireSansSerifMainText()
-                    fontSizeRule(bodyMin = 18.0, bodyMax = 24.0, titleMin = 28.0, titleMax = 32.0)
-                    fontStyleCountRule(maxBold = 10, maxItalic = 10, maxUnderline = 3)
+                    sansSerifRequired = true
+                    fontSizeRange(bodyMin = 18.0, bodyMax = 24.0, titleMin = 28.0, titleMax = 32.0)
+                    maxFontStyle(maxBold = 10, maxItalic = 10, maxUnderline = 3)
                 }
-                limitFontVariety(3)
+                limitFontVariety = 3
                 colors {
-                    requireContrast(4.5, 3.0)
+                    contrastThresholds(4.5, 3.0)
                 }
             }
             header {
                 requireHeaderFormat(10)
             }
             lists {
-                requireListsHaveBetween(3, 7)
-                requireUniformListCapitalization()
-                forbidListEndPunctuation()
-                forbidSingleItemLists()
+                listSizeRange = 3 to 7
+                uniformCapitalizationRequired = true
+                singleItemsForbidden = true
+                endPunctuationForbidden = true
             }
             numbering {
-                requireSlideNumbering()
+                slideNumberingRequired = true
             }
             graphics {
-                requireTextToImageAreaRatio(70)
+                maxTextPercentage = 70
             }
             content {
                 limitTextPerSlide(maxLines = 10, maxWords = 40)
