@@ -19,8 +19,10 @@ class MaxFontVarietyRule(private val maxFonts: Int = 3) : PresentationRule() {
     override fun validate(presentation: Presentation): Boolean {
         val fonts = presentation.slides
             .flatMap { it.texts ?: emptyList() }
+            .flatMap { it.runs }
             .mapNotNull { it.fontFamily }
             .toSet()
+
         return fonts.size <= maxFonts
     }
 }
@@ -30,7 +32,7 @@ class MaxColorVarietyRule(private val maxColor: Int) : PresentationRule() {
 
     override fun validate(presentation: Presentation): Boolean {
         val allTexts = presentation.slides.flatMap { it.texts ?: emptyList() }
-        val uniqueColors = allTexts
+        val uniqueColors = allTexts.flatMap { it.runs }
             .mapNotNull { it.textColor }
             .toSet()
         return uniqueColors.size <= maxColor
@@ -62,7 +64,9 @@ class SlideFormatRule(private val allowedFormats: Set<String>) : PresentationRul
 
 // checks for required slides
 class MandatorySlidesRule(private val requiredTitles: List<String>) : PresentationRule() {
-    override fun message(msg: String?): String = "Presentation must contain slides: ${requiredTitles.joinToString(", ")}"
+    override fun message(msg: String?): String =
+        "Presentation must contain slides: ${requiredTitles.joinToString(", ")}"
+
     override fun validate(presentation: Presentation): Boolean {
         val titles = presentation.slides.mapNotNull { it.title?.trim() }
         return requiredTitles.all { required ->

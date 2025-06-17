@@ -141,17 +141,19 @@ class ContrastRatioRule(
         val texts = slide.texts ?: return true
 
         return texts.all { text ->
-            val textColor = text.textColor ?: return@all true
-            val fontSize = text.fontSize ?: 0.0
-            val contrast = getContrastRatio(textColor, bgColor)
-            if (fontSize >= 18.0) {
-                contrast >= minContrastForLargeText
-            } else {
-                contrast >= minContrastForText
+            val runs = text.runs
+            runs.all { run ->
+                val textColor = run.textColor ?: return@all true
+                val fontSize = run.fontSize ?: 0.0
+                val contrast = getContrastRatio(textColor, bgColor)
+                if (fontSize >= 18.0) {
+                    contrast >= minContrastForLargeText
+                } else {
+                    contrast >= minContrastForText
+                }
             }
         }
     }
-
 }
 
 class TextToImageAreaRatioRule(
@@ -186,9 +188,9 @@ class TextStyleCountRule(
 
     override fun validateSlide(slide: Slide): Boolean {
         val texts = slide.texts ?: return true
-        val boldCount = texts.count { it.isBold }
-        val italicCount = texts.count { it.isItalic }
-        val underlineCount = texts.count { it.isUnderline }
+        val boldCount = texts.flatMap { it.runs }.count { it.isBold }
+        val italicCount = texts.flatMap { it.runs }.count { it.isItalic }
+        val underlineCount = texts.flatMap { it.runs }.count { it.isUnderlined }
         return boldCount <= maxBold && italicCount <= maxItalic && underlineCount <= maxUnderline
     }
 }

@@ -15,18 +15,14 @@ enum class TextType {
     OTHER
 }
 
-data class Text(
+data class TextRun(
     var content: String? = null,
     var fontFamily: String? = null,
     var fontSize: Double? = null,
     var isBold: Boolean = false,
     var isItalic: Boolean = false,
-    var isUnderline: Boolean = false,
+    var isUnderlined: Boolean = false,
     var textColor: Color? = null,
-    var contentType: TextType? = null,
-    val bulletCharacter: String? = null,
-    val width: Double = 0.0,
-    val height: Double = 0.0,
 ) {
     val fontType: FontType
         get() = when {
@@ -34,8 +30,16 @@ data class Text(
             FontUtils.isSansSerif(fontFamily) -> FontType.SANS_SERIF
             else -> FontType.UNKNOWN
         }
+}
 
-    override fun toString(): String {
-        return content ?: ""
-    }
+data class Text(
+    val width: Double = 0.0,
+    val height: Double = 0.0,
+    var contentType: TextType? = null,
+    val bulletCharacter: String? = null,
+    val runs: List<TextRun> = emptyList()
+
+) {
+    val content: String
+        get() = runs.joinToString("") { it.content.toString() }
 }

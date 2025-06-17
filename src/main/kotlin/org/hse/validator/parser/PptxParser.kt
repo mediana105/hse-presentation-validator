@@ -46,37 +46,35 @@ class PptxParser {
                 if (paragraph.text.isNullOrBlank()) continue
 
                 // collect parameters to determine the content type text (TextType)
-                var fontName: String? = null
-                var fontSize: Double? = null
-                var isBold = false
-                var isItalic = false
-                var textColor: Color? = null
                 val bulletCharacter = paragraph.bulletCharacter
                 val indentLevel = paragraph.indentLevel
+                val largestFontSize = findLargestFontSize(poiSlide.shapes.filterIsInstance<XSLFTextShape>())
 
+                val textRuns = mutableListOf<TextRun>()
                 for (run in paragraph.textRuns) {
-                    if (run.fontFamily != null && fontName == null) fontName = run.fontFamily
-                    if (run.fontSize != null && fontSize == null) fontSize = run.fontSize
-                    if (!isBold && run.isBold) isBold = true
-                    if (!isItalic && run.isItalic) isItalic = true
-                    if (textColor == null) textColor = extractSolidPaintColor(run.fontColor)
+                    textRuns.add(
+                        TextRun(
+                            content = run.rawText,
+                            fontFamily = run.fontFamily,
+                            fontSize = run.fontSize,
+                            isBold = run.isBold,
+                            isItalic = run.isItalic,
+                            isUnderlined = run.isUnderlined,
+                            textColor = extractSolidPaintColor(run.fontColor)
+                        )
+                    )
                 }
 
-                val contentType = detectContentType(
-                    shape.textType, shape.anchor, fontSize, slideHeight, paragraph.isBullet
+                val contentType = getContentType(
+                    shape, textRuns, slideHeight, paragraph.isBullet, largestFontSize
                 )
-
                 val text = Text(
-                    content = paragraph.text,
-                    fontFamily = fontName,
-                    fontSize = fontSize,
-                    isBold = isBold,
-                    isItalic = isItalic,
-                    textColor = textColor,
-                    contentType = contentType,
-                    bulletCharacter = bulletCharacter,
                     width = shape.anchor.width,
-                    height = shape.anchor.height
+                    height = shape.anchor.height,
+                    contentType = getContentType(
+                        shape, textRuns, slideHeight, paragraph.isBullet, largestFontSize
+                    ),
+                    bulletCharacter = bulletCharacter,
                 )
                 textElements.add(text)
 
@@ -97,15 +95,6 @@ class PptxParser {
                     groupStack.clear()
                 }
             }
-        }
-
-        logger.info("Slide number: ${poiSlide.slideNumber}")
-        for (list in listGroups) {
-            logger.info("List started\n")
-            for (elem in list) {
-                logger.info("List element: $elem")
-            }
-            logger.info("\nList ended\n")
         }
         return Slide(
             number = poiSlide.slideNumber,
@@ -188,15 +177,21 @@ class PptxParser {
         return number
     }
 
-    fun detectContentType(
-        textType: Placeholder?,
-        anchor: Rectangle2D,
-        fontSize: Double?,
+    fun getContentType(
+        shape: XSLFTextShape,
+        textRuns: List<TextRun>,
         slideHeight: Int,
-        isBullet: Boolean
+        isBullet: Boolean,
+        largestFontSizeInSlide: Double
     ): TextType {
+        val textType = shape.textType
+        val anchor = shape.anchor
+        val fontSize = textRuns.mapNotNull { it.fontSize }.maxOrNull()
+        val verticalPos = getTextShapeVerticalPosition(shape, slideHeight)
         return when {
-            textType == Placeholder.TITLE || textType == Placeholder.CENTERED_TITLE -> TextType.TITLE
+            textType == Placeholder.TITLE || textType == Placeholder.CENTERED_TITLE ||
+                    fontSize != null && fontSize >= largestFontSizeInSlide * 0.9 && anchor.y < slideHeight / 3 -> TextType.TITLE
+
             textType == Placeholder.SUBTITLE -> TextType.SUBTITLE
             textType == Placeholder.HEADER -> TextType.HEADER
             textType == Placeholder.FOOTER -> TextType.FOOTER
@@ -218,5 +213,4 @@ class PptxParser {
             .mapNotNull { it.fontSize }
             .maxOrNull() ?: 0.0
     }
-
 }
