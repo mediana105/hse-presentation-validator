@@ -1,32 +1,66 @@
 package org.hse.validator.validators.rules
 
+import org.hse.validator.model.Slide
 import org.hse.validator.model.Text
 import org.hse.validator.model.TextType
 import org.hse.validator.util.FontUtils
 
-// check body text in sans serif fonts
+/**
+ * Rule that ensures that the body text is written in sans serif fonts.
+ */
 class SansSerifFontRule() : TextRule() {
-    override fun message(font: String?): String = "The main text should be sans serif"
+    private val violations = mutableListOf<String>()
+
+    override fun message(slide: Slide?): String {
+        if (violations.isEmpty()) return "Основной текст должен быть выполнен в шрифте без засечек"
+        return buildString {
+            append("Найдены тексты с шрифтами с засечками:\n")
+            violations.forEach { append("- $it\n") }
+        }
+    }
 
     override fun validateText(text: Text): Boolean {
         if (text.contentType != TextType.BODY) return true
-        return text.runs.all { run ->
-            run.fontFamily?.let { FontUtils.isSansSerif(it) } != false
+
+        val badRuns = text.runs.filter { run ->
+            run.fontFamily?.let { !FontUtils.isSansSerif(it) } == true
         }
+
+        if (badRuns.isNotEmpty()) {
+            badRuns.forEach { run ->
+                val font = run.fontFamily ?: "неизвестный шрифт"
+                val snippet = text.content.take(50).replace("\n", " ")
+                violations.add("\"$snippet\" — шрифт: $font")
+            }
+            return false
+        }
+        return true
     }
 }
 
+
+/**
+ * Rule that checks whether the font size for headings and body text is correct.
+ */
 class FontSizeRule(
     private val bodyMin: Double = 14.0,
     private val bodyMax: Double = 22.0,
     private val titleMin: Double = 28.0,
     private val titleMax: Double = 36.0
 ) : TextRule() {
-    override fun message(msg: String?): String =
-        "Incorrect font size: headings $titleMin-$titleMax pt, main text $bodyMin-$bodyMax pt"
+
+    private val violations = mutableListOf<String>()
+
+    override fun message(slide: Slide?): String {
+        if (violations.isEmpty()) return "Некорректный размер шрифта: заголовки $titleMin-$titleMax pt, основной текст $bodyMin-$bodyMax pt"
+        return buildString {
+            append("Обнаружены тексты с неправильным размером шрифта:\n")
+            violations.forEach { append("- $it\n") }
+        }
+    }
 
     override fun validateText(text: Text): Boolean {
-        return when (text.contentType) {
+        val valid = when (text.contentType) {
             TextType.TITLE -> text.runs.all { run ->
                 val size = run.fontSize ?: return@all true
                 size in titleMin..titleMax
@@ -38,5 +72,24 @@ class FontSizeRule(
             }
             else -> true
         }
+
+        if (!valid) {
+            val expectedRange = when (text.contentType) {
+                TextType.TITLE -> "$titleMin - $titleMax pt"
+                TextType.BODY -> "$bodyMin - $bodyMax pt"
+                else -> "любой размер"
+            }
+            text.runs.forEach { run ->
+                val size = run.fontSize
+                if (size != null) {
+                    val snippet = text.content.take(50).replace("\n", " ")
+                    if ((text.contentType == TextType.TITLE && (size !in titleMin..titleMax)) ||
+                        (text.contentType == TextType.BODY && (size !in bodyMin..bodyMax))) {
+                        violations.add("\"$snippet\" — размер: $size pt, ожидается: $expectedRange")
+                    }
+                }
+            }
+        }
+        return valid
     }
 }

@@ -60,8 +60,8 @@ object RulesBuilder {
 
             // Lists rules
             slideRules.listsRules?.let { lists ->
-                lists.listSizeRange?.let { (min, max) ->
-                    rules.add(ListSizeRule(min, max))
+                lists.listSizeRange?.let { max ->
+                    rules.add(ListSizeRule(max))
                 }
                 if (lists.uniformCapitalizationRequired) rules.add(UniformListCapitalizationRule())
                 if (lists.endPunctuationForbidden) rules.add(ForbidListEndPunctuationRule())

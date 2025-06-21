@@ -1,20 +1,29 @@
 package org.hse.validator.validators.rules
 
 import org.hse.validator.model.Presentation
+import org.hse.validator.model.Slide
 
+/**
+ * Rule to check if the number of slides in the presentation
+ * is within the specified minimum and maximum bounds.
+ */
 class SlideCountRule(
     private val minSlides: Int = 10,
     private val maxSlides: Int = 18
 ) : PresentationRule() {
-    override fun message(msg: String?): String = "Slide count should be between $minSlides and $maxSlides"
+    override fun message(slide: Slide?): String = "Рекомендуемое количество слайдов должно быть от $minSlides до $maxSlides"
 
     override fun validate(presentation: Presentation): Boolean {
         return presentation.slides.size in minSlides..maxSlides
     }
 }
 
+/**
+ * Rule to check that the number of different fonts
+ * used in the presentation does not exceed the allowed maximum.
+ */
 class MaxFontVarietyRule(private val maxFonts: Int = 3) : PresentationRule() {
-    override fun message(msg: String?) = "The number of different fonts should not exceed $maxFonts"
+    override fun message(slide: Slide?) = "Рекомендованное количество различных шрифтов не должно превышать $maxFonts"
 
     override fun validate(presentation: Presentation): Boolean {
         val fonts = presentation.slides
@@ -27,8 +36,12 @@ class MaxFontVarietyRule(private val maxFonts: Int = 3) : PresentationRule() {
     }
 }
 
+/**
+ * Rule to check that the number of different text colors
+ * used in the presentation does not exceed the allowed maximum.
+ */
 class MaxColorVarietyRule(private val maxColor: Int) : PresentationRule() {
-    override fun message(msg: String?): String = "The number of different colors should not exceed $maxColor"
+    override fun message(slide: Slide?): String = "Рекомендуемое количество различных цветов не должно превышать $maxColor"
 
     override fun validate(presentation: Presentation): Boolean {
         val allTexts = presentation.slides.flatMap { it.texts ?: emptyList() }
@@ -40,9 +53,12 @@ class MaxColorVarietyRule(private val maxColor: Int) : PresentationRule() {
 }
 
 
-// check for compliance with the specified format (16:9 or 4:3)
+/**
+ * Rule to check that the slide format matches one of the allowed formats.
+ * Typically checks for aspect ratios like 16:9 or 4:3.
+ */
 class SlideFormatRule(private val allowedFormats: Set<String>) : PresentationRule() {
-    override fun message(msg: String?): String = "Slide format must be one of: ${allowedFormats.joinToString(", ")}"
+    override fun message(slide: Slide?): String = "Рекомендуется использовать один из следующих форматов слайдов: ${allowedFormats.joinToString(", ")}"
     override fun validate(presentation: Presentation): Boolean {
         val format = detectFormat(presentation)
         return allowedFormats.contains(format)
@@ -62,15 +78,21 @@ class SlideFormatRule(private val allowedFormats: Set<String>) : PresentationRul
 
 }
 
-// checks for required slides
+/**
+ * Rule to check that all required slides (by their titles) are present in the presentation.
+ */
 class MandatorySlidesRule(private val requiredTitles: List<String>) : PresentationRule() {
-    override fun message(msg: String?): String =
-        "Presentation must contain slides: ${requiredTitles.joinToString(", ")}"
+    private var missingTitles: List<String> = mutableListOf()
+
+    override fun message(slide: Slide?): String =
+        "В презентации отсутствуют рекомендованные слайды: ${missingTitles.joinToString(", ")}"
 
     override fun validate(presentation: Presentation): Boolean {
         val titles = presentation.slides.mapNotNull { it.title?.trim() }
-        return requiredTitles.all { required ->
-            titles.any { it.contains(required) }
+        missingTitles = requiredTitles.filter { required ->
+            titles.none { it.contains(required, ignoreCase = true) }
         }
+        println(missingTitles)
+        return missingTitles.isEmpty()
     }
 }

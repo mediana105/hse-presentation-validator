@@ -36,7 +36,7 @@ object PresentationProfiles {
                     requireHeaderFormat(10)
                 }
                 lists {
-                    listSizeRange = 3 to 7
+                    listSizeRange = 7
                     uniformCapitalizationRequired = true
                     singleItemsForbidden = true
                     endPunctuationForbidden = true
@@ -79,7 +79,7 @@ object PresentationProfiles {
                     requireHeaderFormat(10)
                 }
                 lists {
-                    listSizeRange = 3 to 7
+                    listSizeRange = 7
                     uniformCapitalizationRequired = true
                     singleItemsForbidden = true
                     endPunctuationForbidden = true

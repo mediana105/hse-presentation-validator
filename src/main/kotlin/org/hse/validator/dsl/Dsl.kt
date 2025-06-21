@@ -101,7 +101,7 @@ fun SlideRules.header(block: HeaderRules.() -> Unit) {
 
 // Lists section: rules for lists formatting
 class ListsRules {
-    var listSizeRange: Pair<Int, Int>? = null // allowed size range for lists
+    var listSizeRange: Int? = null // allowed size range for lists
     var uniformCapitalizationRequired: Boolean = false // uniform capitalization required?
     var endPunctuationForbidden: Boolean = false // forbid punctuation at end of list items
     var singleItemsForbidden: Boolean = false // forbid single-item lists

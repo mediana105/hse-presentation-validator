@@ -75,11 +75,11 @@ class PptxParser {
                 val text = Text(
                     width = shape.anchor.width,
                     height = shape.anchor.height,
-                    contentType = getContentType(
-                        shape, textRuns, slideHeight, paragraph.isBullet, largestFontSize
-                    ),
-                    bulletCharacter = bulletCharacter,
+                    runs = textRuns,
+                    contentType = contentType,
+                    bulletCharacter = bulletCharacter
                 )
+
                 textElements.add(text)
 
                 // grouping lists

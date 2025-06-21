@@ -41,5 +41,5 @@ data class Text(
 
 ) {
     val content: String
-        get() = runs.joinToString("") { it.content.toString() }
+        get() = runs.joinToString("") { it.content ?: "" }
 }
