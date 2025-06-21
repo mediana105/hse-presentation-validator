@@ -14,11 +14,15 @@ data class SlideErrorsByRule(
 
 fun List<RawViolation>.groupBySlideAndRule(): List<SlideErrorsByRule> =
     this.groupBy { it.slide }.map { (slide, violations) ->
-        val byRule = violations.groupBy { it.rule.message(it.slide) }
+        val byRule = violations.groupBy { it.message }
             .map { (ruleMessage, ruleViolations) ->
                 GroupedByRuleError(
                     ruleMessage = ruleMessage,
-                    errorFragments = ruleViolations.map { v -> v.text?.content }
+                    errorFragments = ruleViolations.map { violation ->
+                        val content = violation.text?.content ?: ""
+                        val extra = violation.extraInfo ?: ""
+                        content + extra
+                    }
                 )
             }
         SlideErrorsByRule(

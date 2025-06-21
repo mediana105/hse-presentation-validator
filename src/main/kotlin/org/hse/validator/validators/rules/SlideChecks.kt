@@ -13,36 +13,29 @@ class TooMuchTextRule(
     private val maxLines: Int = 10,
     private val maxWords: Int = 40
 ) : SlideRule() {
-    private var currentLines: Int = 0
-    private var currentWords: Int = 0
-
     override fun message(slide: Slide?): String {
-        return when {
-            currentWords > maxWords && currentLines <= maxLines ->
-                "Превышен рекомендуемый объем текста на слайде: $currentWords слов (максимум $maxWords)"
-
-            currentLines > maxLines && currentWords <= maxWords ->
-                "Превышен рекомендуемый объем текста на слайде: $currentLines строк (максимум $maxLines)"
-
-            currentLines > maxLines && currentWords > maxWords ->
-                "Превышен рекомендуемый объем текста на слайде: $currentLines строк (максимум $maxLines), $currentWords слов (максимум $maxWords)"
-
-            else ->
-                ""
-        }
+        return "Превышен рекомендуемый объем текста на слайде (максимум $maxLines строк, $maxWords слов)"
     }
 
     override fun validateSlide(slide: Slide): Boolean {
         val texts = slide.texts ?: return true
-        currentLines = texts.size
-        currentWords = texts.sumOf { countWords(it.content) }
-        return currentLines > maxLines || currentWords > maxWords
+        val currentLines = texts.size
+        val currentWords = texts.sumOf { countWords(it.content) }
+        return currentLines <= maxLines && currentWords <= maxWords
+    }
+
+    fun getInfo(slide: Slide): String {
+        val texts = slide.texts ?: return "Нет текста"
+        val currentLines = texts.size
+        val currentWords = texts.sumOf { countWords(it.content) }
+        return "Текущий объем: $currentLines строк, $currentWords слов"
     }
 
     private fun countWords(text: String): Int {
         return text.trim().split("\\s+".toRegex()).count { it.isNotEmpty() }
     }
 }
+
 
 /**
  * Rule forbidding lists that contain only one item.
@@ -51,15 +44,20 @@ class ForbidSingleItemListRule : SlideRule() {
     private var violatingLists: List<List<Text>> = emptyList()
 
     override fun message(slide: Slide?): String {
-        val contents = violatingLists.mapNotNull { it.firstOrNull()?.content }
-        return "Найдены списки с одним элементом: ${contents.joinToString(", ")}"
+        return "Найдены списки с одним элементом"
     }
 
     override fun validateSlide(slide: Slide): Boolean {
         violatingLists = slide.listGroups.filter { it.size == 1 }
         return violatingLists.isEmpty()
     }
+
+    fun getInfo(): String {
+        val contents = violatingLists.mapNotNull { it.firstOrNull()?.content }
+        return contents.joinToString(", ")
+    }
 }
+
 
 /**
  * Rule to check that the title slide contains:
@@ -67,11 +65,13 @@ class ForbidSingleItemListRule : SlideRule() {
  */
 class TitleSlideContentRule : SlideRule() {
     private var missingItems: List<String> = emptyList()
+
     override fun message(slide: Slide?): String {
-        return "Отсутствуют рекомендованные элементы титульного слайда: ${missingItems.joinToString(", ")}"
+        return "Отсутствуют рекомендованные элементы титульного слайда"
     }
 
     override fun validateSlide(slide: Slide): Boolean {
+        missingItems = emptyList()
         if (!slide.isTitleSlide) return true
 
         val textContent = slide.texts?.mapNotNull { it.content.trim() } ?: return false
@@ -85,6 +85,10 @@ class TitleSlideContentRule : SlideRule() {
         return missing.isEmpty()
     }
 
+    fun getInfo(): String {
+        return missingItems.joinToString(", ")
+    }
+
     private fun containsFullName(text: String): Boolean {
         return Regex("""([А-ЯЁ][а-яё]+(?:\s+[А-ЯЁ][а-яё]+){2})""").containsMatchIn(text)
     }
@@ -96,9 +100,11 @@ class TitleSlideContentRule : SlideRule() {
 
     private fun containsUniversityName(text: String): Boolean {
         return text.contains("университет", ignoreCase = true) ||
-                text.contains("институт", ignoreCase = true) || text.contains("школа", ignoreCase = true)
+                text.contains("институт", ignoreCase = true) ||
+                text.contains("школа", ignoreCase = true)
     }
 }
+
 
 /**
  * Rule that checks if lists have a number of items within
@@ -110,17 +116,20 @@ class ListSizeRule(
     private var violatingLists: List<List<Text>> = emptyList()
 
     override fun message(slide: Slide?): String {
-        val details = violatingLists.joinToString("; ") { list ->
-            val size = list.size
-            val preview = list.take(2).joinToString(", ") { it.content }
-            "[$size]: $preview..."
-        }
-        return "Обнаружены списки с более чем $maxItems пунктами: $details"
+        return "Обнаружены списки с более чем $maxItems пунктами"
     }
 
     override fun validateSlide(slide: Slide): Boolean {
         violatingLists = slide.listGroups.filter { it.size > maxItems }
         return violatingLists.isEmpty()
+    }
+
+    fun getInfo(): String {
+        return violatingLists.joinToString("; ") { list ->
+            val size = list.size
+            val preview = list.take(2).joinToString(", ") { it.content }
+            "[$size]: $preview..."
+        }
     }
 }
 
@@ -131,11 +140,11 @@ class HeaderFormatRule(
     private val maxWords: Int = 10
 ) : SlideRule() {
 
-    var failedHeaderMessage: String? = null
-        private set
+    private var reasons: List<String> = emptyList()
+    private var headerContent: String? = null
 
     override fun message(slide: Slide?): String =
-        failedHeaderMessage!!
+        "Заголовок нарушает формат"
 
     override fun validateSlide(slide: Slide): Boolean {
         val header = slide.texts?.firstOrNull { it.contentType == TextType.TITLE } ?: return true
@@ -144,15 +153,22 @@ class HeaderFormatRule(
         val endsWithDot = content.endsWith(".")
         val tooLong = content.split("\\s+".toRegex()).size > maxWords
 
-        if (endsWithDot || tooLong) {
-            val reasons = mutableListOf<String>()
-            if (endsWithDot) reasons.add("заканчивается точкой")
-            if (tooLong) reasons.add("слишком длинный (${content.split("\\s+".toRegex()).size} слов)")
-            failedHeaderMessage = "Заголовок: \"$content\" — ${reasons.joinToString(", ")}"
-            return false
-        }
-        failedHeaderMessage = null
-        return true
+        val currentReasons = mutableListOf<String>()
+        if (endsWithDot) currentReasons.add("заканчивается точкой")
+        if (tooLong) currentReasons.add("слишком длинный (${content.split("\\s+".toRegex()).size} слов)")
+
+        reasons = currentReasons
+        headerContent = content
+
+        return reasons.isEmpty()
+    }
+
+    fun getInfo(): String {
+        return headerContent?.let { content ->
+            if (reasons.isNotEmpty())
+                "Заголовок: \"$content\" — ${reasons.joinToString(", ")}"
+            else ""
+        } ?: ""
     }
 }
 
@@ -162,11 +178,18 @@ class HeaderFormatRule(
  * All other slides must have a slide number in the format "X / N".
  */
 class SlideNumberFormatRule : SlideRule() {
+    private var info: String? = null
+
     override fun validateSlide(slide: Slide): Boolean {
+        info = null
         return if (slide.isTitleSlide) {
-            slide.displayedNumber == null
+            val valid = slide.displayedNumber == null
+            if (!valid) info = "Титульный слайд содержит номер: ${slide.displayedNumber}"
+            valid
         } else {
-            slide.displayedNumber != null
+            val valid = slide.displayedNumber != null
+            if (!valid) info = "Слайд без номера"
+            valid
         }
     }
 
@@ -177,6 +200,8 @@ class SlideNumberFormatRule : SlideRule() {
             "Нумерация обязательна на всех слайдах, кроме титульного"
         }
     }
+
+    fun getInfo(): String = info ?: "Сообщение не задано"
 }
 
 /**
@@ -197,7 +222,7 @@ class ForbidListEndPunctuationRule(
                 val content = item.content.trim()
                 if (content.isNotEmpty()) {
                     val endMark = content.last()
-                    if (endMark == '.' || endMark == ',' || endMark == ';') {
+                    if (endMark == ';') {
                         violations.add(content)
                     }
                 }
@@ -208,10 +233,16 @@ class ForbidListEndPunctuationRule(
     }
 
     override fun message(slide: Slide?): String {
-        val shownItems = invalidItems.joinToString(separator = "; ") { "\"$it\"" }
-        return "В элементах списка рекомендуется не ставить знаки препинания в конце: $shownItems"
+        return "В элементах списка рекомендуется не ставить знаки препинания в конце"
+    }
+
+    fun getInfo(): String = if (invalidItems.isEmpty()) {
+        ""
+    } else {
+        invalidItems.joinToString(separator = "; ") { "\"$it\"" }
     }
 }
+
 
 /**
  * Rule that checks that all list items in a group start with the same case:
@@ -235,7 +266,7 @@ class UniformListCapitalizationRule(
                 val allLower = firstCases.all { !it }
                 if (!allUpper && !allLower) {
                     val firstIsUpper = firstCases.first()
-                    group.forEachIndexed { idx, item ->
+                    group.forEach { item ->
                         val content = item.content.trim()
                         val startsUpper = content.firstOrNull()?.isUpperCase() == true
                         if (startsUpper != firstIsUpper) {
@@ -245,19 +276,17 @@ class UniformListCapitalizationRule(
                 }
             }
         }
-
         invalidItems = violations.take(maxItemsToShow)
         return violations.isEmpty()
     }
 
     override fun message(slide: Slide?): String {
-        return if (invalidItems.isEmpty()) {
-            "Все пункты списка в группе должны начинаться с одинакового регистра — все с заглавной или все со строчной буквы"
-        } else {
-            val shownItems = invalidItems.joinToString(separator = "; ") { "\"$it\"" }
-            "Найдены пункты списка с нарушением регистра: $shownItems"
-        }
+        return "Все пункты списка в группе должны начинаться с одинакового регистра — все с заглавной или все со строчной буквы"
     }
+
+    fun getInfo(): String =
+        if (invalidItems.isEmpty()) ""
+        else invalidItems.joinToString(separator = "; ") { "\"$it\"" }
 }
 
 /**
@@ -299,13 +328,12 @@ class ContrastRatioRule(
     }
 
     override fun message(slide: Slide?): String {
-        return "Контраст текста ниже нормы. Минимально найденный коэффициент контрастности: ${
-            "%.2f".format(
-                minObservedContrast
-            )
-        }. " +
-                "Минимально допустимый: $minContrastForText (для обычного текста) и $minContrastForLargeText (для крупного текста)."
+        return "Контраст текста ниже нормы (минимально допустимый: $minContrastForText для обычного текста и $minContrastForLargeText для крупного)."
     }
+
+    fun getInfo(): String =
+        if (minObservedContrast == null) ""
+        else "Минимально найденный коэффициент контрастности: ${"%.2f".format(minObservedContrast)}"
 }
 
 /**
@@ -330,9 +358,11 @@ class TextToImageAreaRatioRule(
     }
 
     override fun message(slide: Slide?): String {
-        return ("Текст занимает ${"%.1f".format(actualTextPercent)}% площади содержимого слайда, " +
-                "что превышает максимальное допустимое значение в $maxTextPercent%.")
+        return "Текст занимает слишком большую часть площади слайда (максимум $maxTextPercent%)."
     }
+
+    fun getInfo(): String =
+        actualTextPercent?.let { "Текущий процент текста: ${"%.1f".format(it)}%" } ?: ""
 }
 
 /**
@@ -344,7 +374,7 @@ class TextStyleCountRule(
     private val maxBold: Int,
     private val maxItalic: Int,
     private val maxUnderline: Int,
-    private val maxSamples: Int = 5  // сколько примеров текстов показывать
+    private val maxSamples: Int = 5
 ) : SlideRule() {
 
     private var boldCount = 0
@@ -385,4 +415,9 @@ class TextStyleCountRule(
             append("Подчеркнутый — $underlineCount (макс. $maxUnderline): ${formatSamples(underlineSamples)}")
         }
     }
+
+    fun getInfo(): String {
+        return "Жирный: $boldCount/$maxBold, Курсив: $italicCount/$maxItalic, Подчеркнутый: $underlineCount/$maxUnderline"
+    }
 }
+

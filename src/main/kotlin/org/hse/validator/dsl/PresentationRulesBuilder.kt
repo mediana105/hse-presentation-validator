@@ -1,8 +1,5 @@
 package org.hse.validator.dsl
 
-import org.hse.validator.validators.rules.Rule
-import org.hse.validator.validators.rules.builder.RulesBuilder
-
 // PresentationRulesBuilder additions for internal state
 class PresentationRulesBuilder {
     var structureRules: StructureRules? = null

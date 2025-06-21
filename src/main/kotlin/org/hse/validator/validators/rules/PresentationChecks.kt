@@ -16,6 +16,8 @@ class SlideCountRule(
     override fun validate(presentation: Presentation): Boolean {
         return presentation.slides.size in minSlides..maxSlides
     }
+    fun getInfo(presentation: Presentation): String = "Получено: ${presentation.slides.size}"
+
 }
 
 /**
@@ -25,15 +27,18 @@ class SlideCountRule(
 class MaxFontVarietyRule(private val maxFonts: Int = 3) : PresentationRule() {
     override fun message(slide: Slide?) = "Рекомендованное количество различных шрифтов не должно превышать $maxFonts"
 
+    private var lastFontsCount: Int = 0
     override fun validate(presentation: Presentation): Boolean {
         val fonts = presentation.slides
             .flatMap { it.texts ?: emptyList() }
             .flatMap { it.runs }
             .mapNotNull { it.fontFamily }
             .toSet()
-
-        return fonts.size <= maxFonts
+        lastFontsCount = fonts.size
+        return lastFontsCount <= maxFonts
     }
+
+    fun getInfo (): String = "Получено: $lastFontsCount"
 }
 
 /**
@@ -41,6 +46,8 @@ class MaxFontVarietyRule(private val maxFonts: Int = 3) : PresentationRule() {
  * used in the presentation does not exceed the allowed maximum.
  */
 class MaxColorVarietyRule(private val maxColor: Int) : PresentationRule() {
+    private var lastCount: Int = 0
+
     override fun message(slide: Slide?): String = "Рекомендуемое количество различных цветов не должно превышать $maxColor"
 
     override fun validate(presentation: Presentation): Boolean {
@@ -48,20 +55,25 @@ class MaxColorVarietyRule(private val maxColor: Int) : PresentationRule() {
         val uniqueColors = allTexts.flatMap { it.runs }
             .mapNotNull { it.textColor }
             .toSet()
-        return uniqueColors.size <= maxColor
+        lastCount = uniqueColors.size
+        return lastCount <= maxColor
+    }
+
+    fun getInfo(): String {
+        return "Получено: $lastCount"
     }
 }
-
 
 /**
  * Rule to check that the slide format matches one of the allowed formats.
  * Typically checks for aspect ratios like 16:9 or 4:3.
  */
 class SlideFormatRule(private val allowedFormats: Set<String>) : PresentationRule() {
+    private var lastDetectedFormat: String? = null
     override fun message(slide: Slide?): String = "Рекомендуется использовать один из следующих форматов слайдов: ${allowedFormats.joinToString(", ")}"
     override fun validate(presentation: Presentation): Boolean {
-        val format = detectFormat(presentation)
-        return allowedFormats.contains(format)
+        lastDetectedFormat = detectFormat(presentation)
+        return allowedFormats.contains(lastDetectedFormat)
     }
 
     private fun detectFormat(presentation: Presentation): String {
@@ -76,6 +88,7 @@ class SlideFormatRule(private val allowedFormats: Set<String>) : PresentationRul
         }
     }
 
+    fun getInfo(): String = "Получено" + (lastDetectedFormat ?: "Неизвестный формат")
 }
 
 /**
@@ -85,7 +98,7 @@ class MandatorySlidesRule(private val requiredTitles: List<String>) : Presentati
     private var missingTitles: List<String> = mutableListOf()
 
     override fun message(slide: Slide?): String =
-        "В презентации отсутствуют рекомендованные слайды: ${missingTitles.joinToString(", ")}"
+        "В презентации отсутствуют рекомендованные слайды:"
 
     override fun validate(presentation: Presentation): Boolean {
         val titles = presentation.slides.mapNotNull { it.title?.trim() }
@@ -95,4 +108,5 @@ class MandatorySlidesRule(private val requiredTitles: List<String>) : Presentati
         println(missingTitles)
         return missingTitles.isEmpty()
     }
+    fun getInfo(): List<String> = missingTitles
 }

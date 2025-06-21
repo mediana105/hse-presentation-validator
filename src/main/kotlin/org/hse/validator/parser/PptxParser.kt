@@ -11,7 +11,6 @@ import org.hse.validator.model.*
 import org.hse.validator.util.TextUtils
 import org.springframework.stereotype.Component
 import java.awt.Color
-import java.awt.geom.Rectangle2D
 import java.io.FileInputStream
 import java.util.logging.Level
 import java.util.logging.Logger
@@ -40,6 +39,11 @@ class PptxParser {
         val textElements = mutableListOf<Text>()
         val listGroups = mutableListOf<MutableList<Text>>() // all list groups on slide
 
+        val textShapes = poiSlide.shapes.filterIsInstance<XSLFTextShape>()
+
+        val minY = textShapes.minOfOrNull { it.anchor.y } ?: 0.0
+        val maxY = textShapes.maxOfOrNull { it.anchor.y } ?: 0.0
+
         for (shape in poiSlide.shapes.filterIsInstance<XSLFTextShape>()) {
             val groupStack = ArrayDeque<MutableList<Text>>()
             val largestFontSize = findLargestFontSize(poiSlide.shapes.filterIsInstance<XSLFTextShape>())
@@ -67,7 +71,7 @@ class PptxParser {
                 }
 
                 val contentType = getContentType(
-                    shape, textRuns, slideHeight, paragraph.isBullet, largestFontSize
+                    shape, textRuns, slideHeight, paragraph.isBullet, largestFontSize, minY, maxY
                 )
                 bulletCharacter =
                     (if (bulletCharacter == null) TextUtils.extractManualListIndex(paragraph.text) else null) as String?
@@ -131,7 +135,7 @@ class PptxParser {
 
         // try to find the lowest text shape corresponding to pattern "X/N"
         val regex = Regex("""\b\d+\s*/\s*\d+\b""")
-        val manualNumber = findBottomMostNumberText(poiSlide, regex, poiSlide.slideShow.pageSize.height)
+        val manualNumber = findBottomMostNumberText(poiSlide, regex)
 
         return manualNumber?.let { regex.find(it)?.value?.trim() }
     }
@@ -162,20 +166,9 @@ class PptxParser {
         return null
     }
 
-    fun getTextShapeVerticalPosition(textShape: XSLFTextShape, slideHeight: Int): String {
-        val anchor: Rectangle2D = textShape.anchor
-        val y = anchor.y
-        return when {
-            y < slideHeight / 3 -> "top"
-            y < slideHeight * 2 / 3 -> "middle"
-            else -> "bottom"
-        }
-    }
-
     private fun findBottomMostNumberText(
         poiSlide: XSLFSlide,
         regex: Regex,
-        slideHeight: Int
     ): String? {
         // collect all (number text, y coordinate) pairs for text shapes matching the regex
         val candidates = poiSlide.shapes
@@ -196,19 +189,20 @@ class PptxParser {
         textRuns: List<TextRun>,
         slideHeight: Int,
         isBullet: Boolean,
-        largestFontSizeInSlide: Double
+        largestFontSizeInSlide: Double,
+        minY: Double,
+        maxY: Double
     ): TextType {
         val textType = shape.textType
         val anchor = shape.anchor
         val fontSize = textRuns.mapNotNull { it.fontSize }.maxOrNull()
-        val verticalPos = getTextShapeVerticalPosition(shape, slideHeight)
         return when {
             textType == Placeholder.TITLE || textType == Placeholder.CENTERED_TITLE ||
-                    fontSize != null && fontSize >= largestFontSizeInSlide * 0.9 && anchor.y < slideHeight / 3 -> TextType.TITLE
+                    fontSize != null && fontSize == largestFontSizeInSlide  && anchor.y == minY -> TextType.TITLE
 
+            textType == Placeholder.FOOTER || anchor.y >= 0.9 * maxY -> TextType.FOOTER
             textType == Placeholder.SUBTITLE -> TextType.SUBTITLE
             textType == Placeholder.HEADER -> TextType.HEADER
-            textType == Placeholder.FOOTER -> TextType.FOOTER
             textType == Placeholder.SLIDE_NUMBER -> TextType.SLIDE_NUMBER
             textType == Placeholder.BODY &&
                     (anchor.y < slideHeight / 4 && (fontSize ?: 0.0) >= 24.0) -> TextType.TITLE
