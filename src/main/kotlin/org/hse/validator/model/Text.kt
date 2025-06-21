@@ -36,7 +36,7 @@ data class Text(
     val width: Double = 0.0,
     val height: Double = 0.0,
     var contentType: TextType? = null,
-    val bulletCharacter: String? = null,
+    val bulletCharacter: Any? = null,
     val runs: List<TextRun> = emptyList()
 
 ) {

@@ -8,6 +8,7 @@ import org.apache.poi.xslf.usermodel.XSLFPictureShape
 import org.apache.poi.xslf.usermodel.XSLFSlide
 import org.apache.poi.xslf.usermodel.XSLFTextShape
 import org.hse.validator.model.*
+import org.hse.validator.util.TextUtils
 import org.springframework.stereotype.Component
 import java.awt.Color
 import java.awt.geom.Rectangle2D
@@ -40,15 +41,15 @@ class PptxParser {
         val listGroups = mutableListOf<MutableList<Text>>() // all list groups on slide
 
         for (shape in poiSlide.shapes.filterIsInstance<XSLFTextShape>()) {
-            val groupStack = ArrayDeque<MutableList<Text>>() // для вложенных списков внутри shape
+            val groupStack = ArrayDeque<MutableList<Text>>()
+            val largestFontSize = findLargestFontSize(poiSlide.shapes.filterIsInstance<XSLFTextShape>())
 
             for (paragraph in shape.textParagraphs) {
                 if (paragraph.text.isNullOrBlank()) continue
 
                 // collect parameters to determine the content type text (TextType)
-                val bulletCharacter = paragraph.bulletCharacter
+                var bulletCharacter: Any? = paragraph.bulletCharacter
                 val indentLevel = paragraph.indentLevel
-                val largestFontSize = findLargestFontSize(poiSlide.shapes.filterIsInstance<XSLFTextShape>())
 
                 val textRuns = mutableListOf<TextRun>()
                 for (run in paragraph.textRuns) {
@@ -68,6 +69,9 @@ class PptxParser {
                 val contentType = getContentType(
                     shape, textRuns, slideHeight, paragraph.isBullet, largestFontSize
                 )
+                bulletCharacter =
+                    (if (bulletCharacter == null) TextUtils.extractManualListIndex(paragraph.text) else null) as String?
+
                 val text = Text(
                     width = shape.anchor.width,
                     height = shape.anchor.height,
@@ -79,21 +83,7 @@ class PptxParser {
                 textElements.add(text)
 
                 // grouping lists
-                if (contentType == TextType.LIST_ITEM) {
-                    val indent = indentLevel
-                    // remove all levels above the current one
-                    while (groupStack.size > indent + 1) groupStack.removeLast()
-                    // if there is no group for the current level, create one
-                    if (groupStack.size <= indent) {
-                        val newGroup = mutableListOf<Text>()
-                        listGroups.add(newGroup)
-                        groupStack.addLast(newGroup)
-                    }
-                    groupStack.last().add(text)
-                } else {
-                    // if not a list element, reset the stack
-                    groupStack.clear()
-                }
+                getLists(contentType, indentLevel, groupStack, listGroups, text)
             }
         }
         return Slide(
@@ -106,6 +96,30 @@ class PptxParser {
             listGroups = listGroups,
             backgroundColor = poiSlide.background?.fillColor
         )
+    }
+
+    private fun getLists(
+        contentType: TextType,
+        indentLevel: Int,
+        groupStack: ArrayDeque<MutableList<Text>>,
+        listGroups: MutableList<MutableList<Text>>,
+        text: Text
+    ) {
+        if (contentType == TextType.LIST_ITEM) {
+            val indent = indentLevel
+            // remove all levels above the current one
+            while (groupStack.size > indent + 1) groupStack.removeLast()
+            // if there is no group for the current level, create one
+            if (groupStack.size <= indent) {
+                val newGroup = mutableListOf<Text>()
+                listGroups.add(newGroup)
+                groupStack.addLast(newGroup)
+            }
+            groupStack.last().add(text)
+        } else {
+            // if not a list element, reset the stack
+            groupStack.clear()
+        }
     }
 
     private fun slideNumberText(poiSlide: XSLFSlide): String? {

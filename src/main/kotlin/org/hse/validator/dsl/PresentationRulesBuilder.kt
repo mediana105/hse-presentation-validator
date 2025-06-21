@@ -14,7 +14,6 @@ class PresentationRulesBuilder {
     }
 }
 
-fun presentationRules(block: PresentationRulesBuilder.() -> Unit): List<Rule> {
-    val builder = PresentationRulesBuilder().apply(block)
-    return RulesBuilder.build(builder)
+fun presentationRules(block: PresentationRulesBuilder.() -> Unit): PresentationRulesBuilder {
+    return PresentationRulesBuilder().apply(block)
 }
