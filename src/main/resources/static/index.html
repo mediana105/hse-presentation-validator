@@ -27,6 +27,9 @@
             color: #000000;
             margin-bottom: 10px;
         }
+        .rule-header.no-toggle {
+            cursor: default;
+        }
         .rule-description {
             color: #696969;
             margin-bottom: 8px;
@@ -61,7 +64,9 @@
         button:hover {
             background: #696969;
         }
-        input[type="file"] { margin-top: 4px; }
+        input[type="file"] {
+            margin-top: 4px;
+        }
     </style>
 </head>
 <body>
@@ -95,9 +100,9 @@
             let data = null;
             try {
                 data = await response.json();
-                console.log(data); 
-            } catch (e) {
-            }
+                console.log(data);
+            } catch (e) {}
+
             if (!response.ok) {
                 document.getElementById('result').innerHTML =
                     data && data.error ? data.error : "Ошибка сервера: " + response.status;
@@ -108,6 +113,7 @@
             document.getElementById('result').innerHTML = "Ошибка: " + err;
         }
     };
+
     function showResult(data) {
         if (!data || !data.length) {
             document.getElementById('result').innerHTML = "<b>Ошибок не найдено!</b>";
@@ -115,33 +121,35 @@
         }
         let html = "";
         data.forEach((slide, slideIdx) => {
+            const headerTitle = slide.slideNumber !== undefined && slide.slideNumber !== null
+                ? `Слайд ${slide.slideNumber}`
+                : "Общая структура";
+
+            const hasGroups = slide.groups && slide.groups.length > 0;
+
             html += `<div class="rule-block">
-                <div class="rule-header" onclick="toggleGroups(${slideIdx})">
-                    Слайд ${slide.slideNumber ?? "Вся презентация"}
+                <div class="rule-header ${hasGroups ? "" : "no-toggle"}" ${hasGroups ? `onclick="toggleGroups(${slideIdx})"` : ""}>
+                    ${headerTitle}
                 </div>
+                ${hasGroups ? `
                 <div class="slide-list" id="groups-${slideIdx}" style="display:none;">
-                    ${(slide.groups ?? []).map((group, groupIdx) =>
-                        `<div class="rule-description" onclick="toggleErrors(${slideIdx},${groupIdx}, event)">
+                    ${slide.groups.map((group, groupIdx) => `
+                        <div class="rule-description" onclick="toggleErrors(${slideIdx},${groupIdx}, event)">
                             ${group.ruleMessage}
-                            ${
-                                group.errorFragments && group.errorFragments.length > 0
-                                ? `<ul class="slide-list" id="errors-${slideIdx}-${groupIdx}" style="display:none;">
-                                    ${group.errorFragments.map(fragment =>
-                                        `<li>
-                                            ${fragment ? `<div class="slide-number">${fragment}</div>` : ""}
-                                        </li>`
-                                    ).join("")}
-                                </ul>`
-                                : ""
-                            }
-                        </div>`
-                    ).join("")}
-                </div>
+                            ${group.errorFragments && group.errorFragments.length > 0 ? `
+                                <ul class="slide-list" id="errors-${slideIdx}-${groupIdx}" style="display:none;">
+                                    ${group.errorFragments.map(fragment => `
+                                        <li>${fragment ? `<div class="slide-number">${fragment}</div>` : ""}</li>
+                                    `).join("")}
+                                </ul>
+                            ` : ""}
+                        </div>
+                    `).join("")}
+                </div>` : ""}
             </div>`;
         });
         document.getElementById('result').innerHTML = html;
     }
-
 
     function toggleGroups(slideIdx) {
         const elem = document.getElementById(`groups-${slideIdx}`);
@@ -153,13 +161,6 @@
         const elem = document.getElementById(`errors-${slideIdx}-${groupIdx}`);
         if (elem) elem.style.display = elem.style.display === 'none' ? 'block' : 'none';
     }
-
-    const groupedBySlide = data.reduce((acc, err) => {
-    const key = err.slideNumber ?? "Вся презентация";
-    if (!acc[key]) acc[key] = [];
-    acc[key].push(err);
-    return acc;
-}, {});
 </script>
 </body>
 </html>
