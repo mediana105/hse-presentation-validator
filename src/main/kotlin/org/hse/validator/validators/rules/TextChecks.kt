@@ -111,7 +111,7 @@ class FontSizeRule(
         }
     }
 
-    fun getInfo(text: Text): String? {
+    override fun getInfo(text: Text): String? {
         return if (violations.isEmpty()) null else violations.joinToString(separator = "\n")
     }
 }

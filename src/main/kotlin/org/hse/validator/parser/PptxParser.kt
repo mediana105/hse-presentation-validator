@@ -9,6 +9,8 @@ import org.apache.poi.xslf.usermodel.XSLFSlide
 import org.apache.poi.xslf.usermodel.XSLFTextShape
 import org.hse.validator.model.*
 import org.hse.validator.util.TextUtils
+import org.openxmlformats.schemas.drawingml.x2006.main.CTGradientFillProperties
+import org.openxmlformats.schemas.presentationml.x2006.main.CTSlide
 import org.springframework.stereotype.Component
 import java.awt.Color
 import java.io.FileInputStream
@@ -102,7 +104,7 @@ class PptxParser {
         )
     }
 
-    private fun getLists(
+    fun getLists(
         contentType: TextType,
         indentLevel: Int,
         groupStack: ArrayDeque<MutableList<Text>>,
@@ -126,7 +128,7 @@ class PptxParser {
         }
     }
 
-    private fun slideNumberText(poiSlide: XSLFSlide): String? {
+    fun slideNumberText(poiSlide: XSLFSlide): String? {
         val placeholderNumber = poiSlide.shapes
             .filterIsInstance<XSLFTextShape>()
             .find { it.textType == Placeholder.SLIDE_NUMBER }
@@ -141,7 +143,7 @@ class PptxParser {
     }
 
 
-    private fun convertImageElement(pictureShape: XSLFPictureShape): Image {
+    fun convertImageElement(pictureShape: XSLFPictureShape): Image {
         val pictureData = pictureShape.pictureData
         val anchor = pictureShape.anchor
 
@@ -198,7 +200,7 @@ class PptxParser {
         val fontSize = textRuns.mapNotNull { it.fontSize }.maxOrNull()
         return when {
             textType == Placeholder.TITLE || textType == Placeholder.CENTERED_TITLE ||
-                    fontSize != null && fontSize == largestFontSizeInSlide  && anchor.y == minY -> TextType.TITLE
+                    fontSize != null && fontSize == largestFontSizeInSlide && anchor.y == minY -> TextType.TITLE
 
             textType == Placeholder.FOOTER || anchor.y >= 0.9 * maxY -> TextType.FOOTER
             textType == Placeholder.SUBTITLE -> TextType.SUBTITLE

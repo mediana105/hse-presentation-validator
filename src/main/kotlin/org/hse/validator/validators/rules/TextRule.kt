@@ -12,4 +12,5 @@ sealed class TextRule : Rule {
             slide.texts?.all { text -> validateText(text) } != false
         }
     }
+    abstract fun getInfo(text: Text): String?
 }

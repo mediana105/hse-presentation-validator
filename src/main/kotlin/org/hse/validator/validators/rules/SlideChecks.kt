@@ -310,6 +310,7 @@ class ContrastRatioRule(
 
         texts.forEach { text ->
             text.runs.forEach { run ->
+                if (text.contentType != TextType.BODY) return@forEach
                 val textColor = run.textColor ?: return@forEach
                 val fontSize = run.fontSize ?: 0.0
                 val contrast = getContrastRatio(textColor, bgColor)
@@ -317,6 +318,7 @@ class ContrastRatioRule(
                 if (contrast < requiredContrast) {
                     violationFound = true
                     if (contrast < minContrastFound) {
+                        minContrastFound = contrast
                         minContrastFound = contrast
                     }
                 }

@@ -88,7 +88,7 @@ class SlideFormatRule(private val allowedFormats: Set<String>) : PresentationRul
         }
     }
 
-    fun getInfo(): String = "Получено" + (lastDetectedFormat ?: "Неизвестный формат")
+    fun getInfo(): String = "Получено: " + (lastDetectedFormat ?: "Неизвестный формат")
 }
 
 /**
