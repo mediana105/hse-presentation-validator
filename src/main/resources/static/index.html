@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Валидатор презентаций</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 700px;
+            margin: 32px auto;
+        }
+        h1 {
+            color: #000000;
+        }
+        form {
+            margin-bottom: 32px;
+        }
+        .rule-block {
+            margin-bottom: 10px;
+            border: 1px solid #DCDCDC;
+            border-radius: 8px;
+            padding: 10px;
+        }
+        .rule-header {
+            cursor: pointer;
+            font-weight: bold;
+            color: #000000;
+            margin-bottom: 10px;
+        }
+        .rule-header.no-toggle {
+            cursor: default;
+        }
+        .rule-description {
+            color: #696969;
+            margin-bottom: 8px;
+        }
+        .slide-list {
+            margin: 0;
+            padding: 0 0 0 20px;
+            display: none;
+        }
+        .slide-list.active {
+            display: block;
+        }
+        .slide-number {
+            display: inline-block;
+            background: #D3D3D3;
+            border-radius: 4px;
+            padding: 2px 8px;
+            margin: 2px;
+        }
+        #result {
+            min-height: 40px;
+        }
+        button {
+            background: #D3D3D3;
+            color: #000000;
+            border: none;
+            padding: 6px 16px;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        button:hover {
+            background: #696969;
+        }
+        input[type="file"] {
+            margin-top: 4px;
+        }
+    </style>
+</head>
+<body>
+<h1>Валидатор презентаций</h1>
+<form id="uploadForm">
+    <label>Тип презентации:
+        <select name="type">
+            <option value="Выпускная квалификационная работа (ВКР)">ВКР</option>
+            <option value="Курсовая работа">Курсовая</option>
+        </select>
+    </label>
+    <br>
+    <label>Файл презентации (.pptx):
+        <input type="file" name="file" required>
+    </label>
+    <br>
+    <button type="submit">Проверить</button>
+</form>
+<h2>Результат проверки:</h2>
+<div id="result"></div>
+
+<script>
+    const form = document.getElementById('uploadForm');
+    form.onsubmit = async (e) => {
+        e.preventDefault();
+        const formData = new FormData(form);
+        document.getElementById('result').innerHTML = 'Проверка...';
+
+        try {
+            const response = await fetch('/api/validate', { method: 'POST', body: formData });
+            let data = null;
+            try {
+                data = await response.json();
+                console.log(data);
+            } catch (e) {}
+
+            if (!response.ok) {
+                document.getElementById('result').innerHTML =
+                    data && data.error ? data.error : "Ошибка сервера: " + response.status;
+                return;
+            }
+            showResult(data);
+        } catch (err) {
+            document.getElementById('result').innerHTML = "Ошибка: " + err;
+        }
+    };
+
+    function showResult(data) {
+        if (!data || !data.length) {
+            document.getElementById('result').innerHTML = "<b>Ошибок не найдено!</b>";
+            return;
+        }
+        let html = "";
+        data.forEach((slide, slideIdx) => {
+            const headerTitle = slide.slideNumber !== undefined && slide.slideNumber !== null
+                ? `Слайд ${slide.slideNumber}`
+                : "Общая структура";
+
+            const hasGroups = slide.groups && slide.groups.length > 0;
+
+            html += `<div class="rule-block">
+                <div class="rule-header ${hasGroups ? "" : "no-toggle"}" ${hasGroups ? `onclick="toggleGroups(${slideIdx})"` : ""}>
+                    ${headerTitle}
+                </div>
+                ${hasGroups ? `
+                <div class="slide-list" id="groups-${slideIdx}" style="display:none;">
+                    ${slide.groups.map((group, groupIdx) => `
+                        <div class="rule-description" onclick="toggleErrors(${slideIdx},${groupIdx}, event)">
+                            ${group.ruleMessage}
+                            ${group.errorFragments && group.errorFragments.length > 0 ? `
+                                <ul class="slide-list" id="errors-${slideIdx}-${groupIdx}" style="display:none;">
+                                    ${group.errorFragments.map(fragment => `
+                                        <li>${fragment ? `<div class="slide-number">${fragment}</div>` : ""}</li>
+                                    `).join("")}
+                                </ul>
+                            ` : ""}
+                        </div>
+                    `).join("")}
+                </div>` : ""}
+            </div>`;
+        });
+        document.getElementById('result').innerHTML = html;
+    }
+
+    function toggleGroups(slideIdx) {
+        const elem = document.getElementById(`groups-${slideIdx}`);
+        if (elem) elem.style.display = elem.style.display === 'none' ? 'block' : 'none';
+    }
+
+    function toggleErrors(slideIdx, groupIdx, event) {
+        event.stopPropagation();
+        const elem = document.getElementById(`errors-${slideIdx}-${groupIdx}`);
+        if (elem) elem.style.display = elem.style.display === 'none' ? 'block' : 'none';
+    }
+</script>
+</body>
+</html>

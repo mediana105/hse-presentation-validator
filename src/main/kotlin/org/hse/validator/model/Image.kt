@@ -6,6 +6,6 @@ data class Image(
     val data: List<Byte>,
     var fileName: String? = null,
     var type: PictureData.PictureType? = null,
-    var width: Int = 0,
-    var height: Int = 0
+    var width: Double = 0.0,
+    var height: Double = 0.0
 )

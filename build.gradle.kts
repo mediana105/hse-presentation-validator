@@ -2,6 +2,8 @@ plugins {
     java
     application
     kotlin("jvm")
+    id("org.springframework.boot") version "3.2.6"
+    id("io.spring.dependency-management") version "1.1.4"
 }
 
 group = "org.hse.validator"
@@ -18,11 +20,7 @@ repositories {
 }
 
 dependencies {
-    // POI без Log4j
     implementation("org.apache.poi:poi-ooxml:5.4.0") {
-        exclude(group = "org.apache.logging.log4j", module = "log4j-api")
-    }
-    implementation("org.apache.poi:poi:5.2.3") {
         exclude(group = "org.apache.logging.log4j", module = "log4j-api")
     }
     implementation("org.jetbrains:annotations:24.0.1")
@@ -31,6 +29,15 @@ dependencies {
 
     implementation("com.ibm.icu:icu4j:72.1")
     implementation(kotlin("stdlib-jdk8"))
+    implementation("com.fasterxml.jackson.module:jackson-module-kotlin:2.15.3")
+
+    implementation("org.springframework.boot:spring-boot-starter-web")
+
+    testImplementation("org.junit.jupiter:junit-jupiter-api:5.10.0")
+    testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:5.10.0")
+    testImplementation("io.mockk:mockk:1.13.5")
+    testImplementation("org.jetbrains.kotlin:kotlin-test:1.9.10")
+    testImplementation("org.jetbrains.kotlin:kotlin-test-junit5:1.9.10")
 }
 
 application {

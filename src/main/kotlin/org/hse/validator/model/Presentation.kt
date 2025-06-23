@@ -1,11 +1,10 @@
 package org.hse.validator.model
 
 data class Presentation(
-    val slides: List<Slide> = emptyList()
+    val slides: List<Slide> = emptyList(),
+    val width: Int? = null,
+    val height: Int? = null
 ) {
     private val titleSlidesCount: Int
         get() = slides.count { it.isTitleSlide }
-
-    override fun toString(): String =
-        "Presentation[slides=${slides.size}, titleSlides=$titleSlidesCount]"
 }
